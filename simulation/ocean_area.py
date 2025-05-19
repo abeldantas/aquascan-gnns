@@ -59,13 +59,13 @@ class OceanArea:
     def _deploy_sigma_nodes(self):
         """Position σ-nodes at strategic locations for relay purposes."""
         # Place sigma nodes at the specified positions:
-        # 1. At 19.5km from shore (half a km closer) and 15km along the coastline
-        # 2. At 19.5km from shore and at the left edge (x=0)
-        # 3. At 19.5km from shore and at the right edge (x=AREA_LENGTH)
+        # 1. At 20km from shore and 15km along the coastline
+        # 2. At 20km from shore and at the left edge (x=0)
+        # 3. At 20km from shore and at the right edge (x=AREA_LENGTH)
         positions = np.array([
-            [15, 19.5],               # Middle node at x=15, y=19.5
-            [0, 19.5],                # Left edge node at x=0, y=19.5
-            [self.length, 19.5]       # Right edge node at x=AREA_LENGTH, y=19.5
+            [15, 20],                 # Middle node at x=15, y=20
+            [0, 20],                  # Left edge node at x=0, y=20
+            [self.length, 20]         # Right edge node at x=AREA_LENGTH, y=20
         ])
         
         print(f"Deployed σ-nodes at positions:")
