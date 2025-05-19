@@ -34,10 +34,11 @@ DETECTION_RADIUS = 0.2  # km (200 meters sensor detection radius)
 
 # Temporal Configuration
 TIME_STEP = 1.0  # seconds per tick
-SIMULATION_DURATION = 60 * 60 * 24 * 7  # 1 week in seconds
+SIMULATION_DURATION = 60 * 60 * 24 * 30  # 30 days in seconds (extended from 7 days)
 SAVE_INTERVAL = 300  # Save simulation state every 5 minutes
 MOTION_SUBSTEPS = 5  # Number of substeps for smoother motion calculations
-SIMULATION_SPEED = 10.0  # Simulation runs 10x faster than real time
+SIMULATION_SPEED = 1.0  # Default: realtime (can be changed via UI)
+SIMULATION_START_HOUR = 9  # Simulation starts at 9 AM
 
 # Marine Entity Configuration
 MARINE_ENTITIES = {
@@ -46,33 +47,33 @@ MARINE_ENTITIES = {
         "motion_model": "brownian",
         "count": 3,
         "typical_volume": 0.01,  # cubic meters
-        "speed_range": (0.1, 0.4),  # m/s (reduced from 0.5-2.0)
-        "turn_frequency": 0.1,  # probability of changing direction per second
+        "speed_range": (0.16, 0.19),  # m/s (approx 14-16 km/day)
+        "turn_frequency": 0.002,  # probability of changing direction per second (significantly reduced)
     },
     "atlantic_horse_mackerel": {
         "scientific_name": "Trachurus trachurus",
         "motion_model": "brownian",
         "count": 3,
         "typical_volume": 0.007,  # cubic meters
-        "speed_range": (0.15, 0.5),  # m/s (reduced from 0.7-2.5)
-        "turn_frequency": 0.15,  # probability of changing direction per second
+        "speed_range": (0.19, 0.23),  # m/s (approx 16-20 km/day)
+        "turn_frequency": 0.002,  # probability of changing direction per second (significantly reduced)
     },
     "bottlenose_dolphin": {
         "scientific_name": "Tursiops truncatus",
         "motion_model": "sinusoidal",
         "count": 1,  # Less common
         "typical_volume": 3.5,  # cubic meters
-        "speed_range": (0.3, 1.2),  # m/s (reduced from 1.5-6.0)
-        "amplitude": 0.5,  # km
-        "period": 300,  # seconds
+        "speed_range": (0.32, 0.39),  # m/s (approx 27-33 km/day)
+        "amplitude": 0.2,  # km (increased to create wider paths)
+        "period": 3600,  # seconds (increased for much gentler curves)
     }
 }
 
 # Environmental Parameters
-CURRENT_STRENGTH = 0.5  # Maximum current speed in m/s
-CURRENT_VARIABILITY = 0.2  # Variability in current strength (0-1)
-PERLIN_SCALE = 0.1  # Scale factor for Perlin noise (smaller = smoother)
-PERLIN_OCTAVES = 3  # Number of octaves for Perlin noise
+CURRENT_STRENGTH = 0.01  # Maximum current speed in m/s (reduced from 0.05)
+CURRENT_VARIABILITY = 0.15  # Variability in current strength (0-1)
+PERLIN_SCALE = 0.01  # Scale factor for Perlin noise (smaller = smoother)
+PERLIN_OCTAVES = 2  # Number of octaves for Perlin noise (reduced from 3)
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates

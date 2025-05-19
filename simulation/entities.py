@@ -16,7 +16,8 @@ in the marine monitoring system.
 import numpy as np
 from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
-    MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS
+    MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
+    SIMULATION_SPEED
 )
 
 
@@ -78,6 +79,7 @@ class EpsilonNode(BaseEntity):
         current_vector = ocean_area.calculate_ocean_current(self.position, current_time)
         
         # Scale to km and apply time step - convert from m/s to km/s
+        # Note: dt already includes SIMULATION_SPEED effects from the tick() method
         drift = np.array(current_vector) * dt * 0.001  # m/s to km/s
         
         # Update position
@@ -218,13 +220,15 @@ class ThetaContact(BaseEntity):
     def _update_brownian(self, current_time, ocean_area):
         """Update position using Brownian motion model with substeps for smoother movement."""
         # Use substeps for smoother motion
+        # IMPORTANT: Don't multiply by SIMULATION_SPEED here since that's already
+        # accounted for in the tick() method's time advancement
         sub_time_step = TIME_STEP / MOTION_SUBSTEPS
         
         for _ in range(MOTION_SUBSTEPS):
             # Randomly change direction with some probability
             if np.random.random() < self.turn_frequency * sub_time_step:
-                # Change direction by a random angle
-                self.direction += np.random.normal(0, np.pi/4)
+                # Change direction by a smaller random angle for more gradual turns
+                self.direction += np.random.normal(0, np.pi/12)  # Reduced from pi/4 to pi/12
                 self.direction %= 2 * np.pi
             
             # Calculate movement vector for this substep
@@ -234,17 +238,34 @@ class ThetaContact(BaseEntity):
             # Apply movement
             new_position = self.position + np.array([dx, dy])
             
-            # Check if new position is within bounds
-            if ocean_area.is_within_bounds(new_position):
-                self.position = new_position
-            else:
-                # If outside bounds, reflect direction (bounce off the edge)
-                self.direction = np.random.uniform(0, 2 * np.pi)
-                # Try again with new direction in next substep
+            # Modified boundary checking to allow wider migration paths
+            # We'll only change direction if they get very far outside the deployment area
+            # +/- 15km outside the normal bounds
+            x, y = new_position
+            extended_x_min, extended_x_max = -15, ocean_area.length + 15
+            extended_y_min, extended_y_max = ocean_area.shore_distance - 15, ocean_area.shore_distance + ocean_area.width + 15
+            
+            if x < extended_x_min or x > extended_x_max or y < extended_y_min or y > extended_y_max:
+                # Only if we're way outside bounds, turn toward center of deployment area
+                center_x = ocean_area.length / 2
+                center_y = ocean_area.shore_distance + ocean_area.width / 2
+                
+                # Calculate angle to center
+                angle_to_center = np.arctan2(center_y - y, center_x - x)
+                
+                # Gradually adjust direction (blend current with target)
+                angle_diff = ((angle_to_center - self.direction + np.pi) % (2 * np.pi)) - np.pi
+                self.direction += angle_diff * 0.1  # Gradual adjustment
+                self.direction %= 2 * np.pi
+            
+            # Always apply movement regardless of bounds (allow them to leave deployment area)
+            self.position = new_position
     
     def _update_sinusoidal(self, current_time, ocean_area):
         """Update position using sinusoidal motion model with substeps for smoother movement."""
         # Use substeps for smoother motion
+        # IMPORTANT: Don't multiply by SIMULATION_SPEED here since that's already
+        # accounted for in the tick() method's time advancement
         sub_time_step = TIME_STEP / MOTION_SUBSTEPS
         
         for _ in range(MOTION_SUBSTEPS):
@@ -267,24 +288,40 @@ class ThetaContact(BaseEntity):
                 perp_x /= perp_len
                 perp_y /= perp_len
             
-            # Apply sinusoidal offset
+            # Apply sinusoidal offset - but scale down for gentler curves
             lateral_offset = self.amplitude * sine_factor * sub_time_step
             
             # Final movement
             dx = forward_x + perp_x * lateral_offset
             dy = forward_y + perp_y * lateral_offset
             
-            # Apply movement
+            # Apply movement (regardless of bounds - allow migration beyond deployment area)
             new_position = self.position + np.array([dx, dy])
             
-            # Check if new position is within bounds
-            if ocean_area.is_within_bounds(new_position):
-                self.position = new_position
-            else:
-                # If outside bounds, reverse course
-                self.base_direction = (self.base_direction + np.pi) % (2 * np.pi)
+            # Modified boundary checking to allow wider migration paths
+            # Only change direction if they get very far outside the deployment area
+            x, y = new_position
+            extended_x_min, extended_x_max = -15, ocean_area.length + 15
+            extended_y_min, extended_y_max = ocean_area.shore_distance - 15, ocean_area.shore_distance + ocean_area.width + 15
+            
+            if x < extended_x_min or x > extended_x_max or y < extended_y_min or y > extended_y_max:
+                # If far outside bounds, gradually turn toward center of deployment area
+                center_x = ocean_area.length / 2
+                center_y = ocean_area.shore_distance + ocean_area.width / 2
+                
+                # Calculate angle to center
+                angle_to_center = np.arctan2(center_y - y, center_x - x)
+                
+                # Gradually adjust direction (blend current with target)
+                angle_diff = ((angle_to_center - self.base_direction + np.pi) % (2 * np.pi)) - np.pi
+                self.base_direction += angle_diff * 0.1  # Gradual adjustment
+                self.base_direction %= 2 * np.pi
+                
+                # Reset phase for smoother transition
                 self.phase = np.random.uniform(0, 2 * np.pi)
-                # Will try with new direction in next substep
+            
+            # Always apply movement
+            self.position = new_position
             
             # Update current_time for next substep
             current_time += sub_time_step

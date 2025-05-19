@@ -127,6 +127,17 @@ class AquascanSimulation:
         print(f"Simulation started with {len(self.epsilon_nodes)} ε-nodes, "
               f"{len(self.sigma_nodes)} σ-nodes, and {len(self.theta_contacts)} θ-contacts")
     
+    def set_speed(self, speed_factor):
+        """
+        Set the simulation speed factor.
+        
+        Args:
+            speed_factor (int): Speed multiplier (1 = realtime, etc.)
+        """
+        global SIMULATION_SPEED
+        SIMULATION_SPEED = speed_factor
+        print(f"Simulation speed set to {speed_factor}x")
+        
     def stop(self):
         """Stop the simulation."""
         self.is_running = False

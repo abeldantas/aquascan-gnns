@@ -8,6 +8,7 @@ It sets up the Bokeh server and starts the simulation with the configured parame
 import argparse
 import os
 import sys
+import time
 from bokeh.server.server import Server
 from tornado.ioloop import IOLoop
 from bokeh.layouts import row
@@ -25,7 +26,7 @@ def bokeh_app(doc):
     from config.simulation_config import (
         AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
         VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT, SHORE_DISTANCE,
-        SIMULATION_SPEED
+        SIMULATION_SPEED, SIMULATION_START_HOUR
     )
     import numpy as np
     from bokeh.plotting import figure
@@ -36,7 +37,7 @@ def bokeh_app(doc):
     simulation = AquascanSimulation()
     simulation.initialize()
     
-    # Data sources for Bokeh
+    # Update data sources for visualization
     epsilon_source = ColumnDataSource({
         'x': [], 'y': [], 'id': [], 'color': []
     })
@@ -44,10 +45,10 @@ def bokeh_app(doc):
         'x': [], 'y': [], 'id': [], 'color': []
     })
     detected_contact_source = ColumnDataSource({
-        'x': [], 'y': [], 'id': [], 'type': []
+        'x': [], 'y': [], 'id': [], 'type': [], 'label': []
     })
     undetected_contact_source = ColumnDataSource({
-        'x': [], 'y': [], 'id': [], 'type': []
+        'x': [], 'y': [], 'id': [], 'type': [], 'label': []
     })
     
     # Create main plot
@@ -57,6 +58,7 @@ def bokeh_app(doc):
         x_range=(-3, AREA_LENGTH + 3),  # Add 3km extra view on each side
         y_range=(SHORE_DISTANCE - 3, SHORE_DISTANCE + AREA_WIDTH + 3),  # Add 3km extra view on each side
         tools="pan,wheel_zoom,box_zoom,reset,save",
+        margin=(30, 10, 10, 30)  # Top, right, bottom, left margins in pixels
     )
     
     # Configure plot
@@ -69,36 +71,50 @@ def bokeh_app(doc):
     
     # Add glyphs - use basic circle for simplicity
     # ε-nodes (blue circles) - smaller size
-    plot.circle(
+    plot.scatter(
         x='x', y='y', source=epsilon_source,
         size=4, fill_color='#3288bd', line_color='#3288bd',
-        alpha=0.7, legend_label="ε-nodes"
+        alpha=0.7, marker="circle"
     )
     
     # σ-nodes (red squares) - larger size
-    plot.circle(
+    plot.scatter(
         x='x', y='y', source=sigma_source,
         size=16, fill_color='#fc8d59', line_color='#fc8d59',
-        alpha=0.9, legend_label="σ-nodes"
+        alpha=0.9, marker="circle"
     )
     
     # θ-contacts detected (bright green)
-    plot.circle(
+    plot.scatter(
         x='x', y='y', source=detected_contact_source,
         size=10, fill_color='#00cc00', line_color='#00cc00',
-        alpha=0.8, legend_label="θ-contacts (detected)"
+        alpha=0.8, marker="circle"
     )
     
     # θ-contacts not detected (grey) - no legend
-    plot.circle(
+    plot.scatter(
         x='x', y='y', source=undetected_contact_source,
         size=10, fill_color='#999999', line_color='#999999',
-        alpha=0.8  # No legend_label
+        alpha=0.8, marker="circle"
     )
     
-    # Configure legend
-    plot.legend.location = "top_left"
-    plot.legend.click_policy = "hide"
+    # Add contact ID labels above detected contacts
+    labels_detected = plot.text(
+        x='x', y='y', text='label',
+        x_offset=0, y_offset=10,  # Position slightly above the point
+        text_font_size='8pt', text_color='#00cc00',
+        text_align='center', text_baseline='bottom',
+        source=detected_contact_source
+    )
+    
+    # Add contact ID labels above undetected contacts
+    labels_undetected = plot.text(
+        x='x', y='y', text='label',
+        x_offset=0, y_offset=10,  # Position slightly above the point
+        text_font_size='8pt', text_color='#999999',
+        text_align='center', text_baseline='bottom',
+        source=undetected_contact_source
+    )
     
     # Add deployment area outline as a semi-transparent rectangle to highlight the area
     # This rectangle outlines the deployment area from 6-22km offshore and 0-30km along coastline
@@ -116,22 +132,48 @@ def bokeh_app(doc):
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
         <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
-        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
+        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> Ready
+        
+        <h4>Entity Types:</h4>
+        <ul style="padding-left: 20px; margin-top: 5px;">
+          <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
+          <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
+        </ul>
+        
+        <h4>Marine Species:</h4>
+        <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
+        </div>
         """,
-        width=400, height=200  # Increased height for more content
+        width=400, height=400  # Increased height for more content
     )
     
     # Control buttons
     start_button = Button(label="Start Simulation", button_type="success")
     stop_button = Button(label="Stop Simulation", button_type="danger")
     
+    # Speed control buttons
+    speed_realtime = Button(label="Realtime", button_type="default", width=75)
+    speed_x4 = Button(label="x4", button_type="default", width=50)
+    speed_x8 = Button(label="x8", button_type="default", width=50)
+    speed_x16 = Button(label="x16", button_type="default", width=50)
+    
+    # Update the currently selected speed button
+    def update_speed_buttons(current_speed):
+        speed_realtime.button_type = "success" if current_speed == 1 else "default"
+        speed_x4.button_type = "success" if current_speed == 4 else "default"
+        speed_x8.button_type = "success" if current_speed == 8 else "default"
+        speed_x16.button_type = "success" if current_speed == 16 else "default"
+    
     # Layout
     controls = column(
         info_div,
-        Div(text="<div style='height:40px;'></div>"),  # Add spacing
-        row(start_button, stop_button)
+        Div(text="<h4>Simulation Controls:</h4>", margin=(10, 0, 0, 0)),
+        row(start_button, stop_button),
+        Div(text="<h4>Simulation Speed:</h4>", margin=(10, 0, 0, 0)),
+        row(speed_realtime, speed_x4, speed_x8, speed_x16),
+        Div(text="<div style='margin-top: auto;'></div>", height=150)  # Flexible spacer
     )
     
     # Update data function
@@ -146,12 +188,6 @@ def bokeh_app(doc):
             epsilon_data['id'].append(node.id)
             epsilon_data['color'].append('blue')
         
-        # Print sample positions for debugging
-        if len(simulation.epsilon_nodes) > 0:
-            print(f"Sample ε-node positions:")
-            for i in range(min(5, len(simulation.epsilon_nodes))):
-                print(f"  Node {simulation.epsilon_nodes[i].id}: {simulation.epsilon_nodes[i].position}")
-        
         # Update σ-nodes
         sigma_data = {
             'x': [], 'y': [], 'id': [], 'color': []
@@ -162,22 +198,16 @@ def bokeh_app(doc):
             sigma_data['id'].append(node.id)
             sigma_data['color'].append('red')
         
-        # Print σ-node positions
-        print(f"σ-node positions:")
-        for node in simulation.sigma_nodes:
-            print(f"  Node {node.id}: {node.position}")
-        
         # Update θ-contacts - split into detected and undetected sources
         detected_data = {
-            'x': [], 'y': [], 'id': [], 'type': []
+            'x': [], 'y': [], 'id': [], 'type': [], 'label': []
         }
         undetected_data = {
-            'x': [], 'y': [], 'id': [], 'type': []
+            'x': [], 'y': [], 'id': [], 'type': [], 'label': []
         }
         
         # For each contact, check if it's within detection range of any epsilon node
         detection_radius_km = simulation.epsilon_nodes[0].detection_radius if simulation.epsilon_nodes else 0.2
-        print(f"Detection radius: {detection_radius_km}km")
         
         currently_detected = 0
         
@@ -198,23 +228,18 @@ def bokeh_app(doc):
                 detected_data['y'].append(contact.position[1])
                 detected_data['id'].append(contact.id)
                 detected_data['type'].append(contact.type)
+                # Extract ID number from the full ID (e.g., "θ-001" -> "001")
+                id_number = contact.id.split('-')[1]
+                detected_data['label'].append(f"θ-{id_number}")
                 currently_detected += 1
-                
-                # Print detection information
-                print(f"Contact {contact.id} detected by nodes: {', '.join(detecting_nodes)}")
             else:
                 undetected_data['x'].append(contact.position[0])
                 undetected_data['y'].append(contact.position[1])
                 undetected_data['id'].append(contact.id)
                 undetected_data['type'].append(contact.type)
-        
-        # Print sample contact positions
-        if len(simulation.theta_contacts) > 0:
-            print(f"Sample θ-contact positions and detection status:")
-            for i in range(min(5, len(simulation.theta_contacts))):
-                is_detected = any(simulation.theta_contacts[i].id == id for id in detected_data['id'])
-                status = "DETECTED" if is_detected else "not detected"
-                print(f"  Contact {simulation.theta_contacts[i].id}: {simulation.theta_contacts[i].position} - {status}")
+                # Extract ID number from the full ID
+                id_number = contact.id.split('-')[1]
+                undetected_data['label'].append(f"θ-{id_number}")
         
         # Update data sources
         epsilon_source.data = epsilon_data
@@ -222,30 +247,76 @@ def bokeh_app(doc):
         detected_contact_source.data = detected_data
         undetected_contact_source.data = undetected_data
         
-        # Update info display
-        elapsed_time = simulation.current_time
-        hours = int(elapsed_time / 3600)
-        minutes = int((elapsed_time % 3600) / 60)
-        seconds = int(elapsed_time % 60)
+        # Calculate real elapsed time
+        real_elapsed_time = time.time() - simulation.start_real_time if hasattr(simulation, 'start_real_time') else 0
+        real_hours = int(real_elapsed_time / 3600)
+        real_minutes = int((real_elapsed_time % 3600) / 60)
+        real_seconds = int(real_elapsed_time % 60)
         
-        # Count currently detected contacts - now we just use the length of detected_data
-        # since we already separated them
+        # Calculate simulation time (starting at 9am on day 1)
+        sim_elapsed_time = simulation.current_time
+        start_hour = SIMULATION_START_HOUR
+        
+        # Convert to hours, minutes, seconds
+        total_seconds = start_hour * 3600 + sim_elapsed_time
+        sim_days = int(total_seconds / (24 * 3600))
+        sim_hours = int((total_seconds % (24 * 3600)) / 3600)
+        sim_minutes = int((total_seconds % 3600) / 60)
+        sim_seconds = int(total_seconds % 60)
+        
+        # Count currently detected contacts
         currently_detected = len(detected_data['id'])
         
         status = "running" if simulation.is_running else "stopped"
+        
+        # Build contacts list HTML
+        contacts_list_html = "<ul style='padding-left: 20px; margin-top: 0;'>"
+        
+        # Sort contacts by ID to ensure consistent ordering
+        sorted_contacts = sorted(simulation.theta_contacts, key=lambda x: x.id)
+        
+        for contact in sorted_contacts:
+            # Check if detected
+            is_detected = any(contact.id == id for id in detected_data['id'])
+            status_color = "#00cc00" if is_detected else "#999999"
+            status_text = "Detected" if is_detected else "Not detected"
+            
+            # Extract contact number from ID
+            contact_num = contact.id.split('-')[1]
+            
+            contacts_list_html += f"""
+            <li>
+              <span style="color: {status_color};">●</span> <b>θ-{contact_num}</b>: {contact.species_name} ({status_text})
+            </li>
+            """
+        
+        contacts_list_html += "</ul>"
         
         info_text = f"""
         <h3>Simulation Details</h3>
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
         <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
-        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
+        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> {status.capitalize()}<br>
-        <b>Simulation Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d} ({SIMULATION_SPEED}x real-time)<br>
+        <b>Real Time:</b> {real_hours:02d}:{real_minutes:02d}:{real_seconds:02d}<br>
+        <b>Simulation Time:</b> Day {sim_days+1}, {sim_hours:02d}:{sim_minutes:02d}:{sim_seconds:02d}<br>
+        <b>Time Scale:</b> {SIMULATION_SPEED}x real-time<br>
         <b>Total Detections:</b> {simulation.stats['detections']}<br>
         <b>Currently Detected:</b> {currently_detected} contacts<br>
         <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
+        
+        <h4>Entity Types:</h4>
+        <ul style="padding-left: 20px; margin-top: 5px;">
+          <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
+          <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
+        </ul>
+        
+        <h4>Marine Species:</h4>
+        <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
+        {contacts_list_html}
+        </div>
         """
         info_div.text = info_text
     
@@ -255,6 +326,7 @@ def bokeh_app(doc):
     # Button callbacks
     def start_simulation():
         simulation.start()
+        simulation.start_real_time = time.time()  # Track when the simulation started
         update_data()
         # Increase the update frequency for more fluid animation (30+ FPS)
         doc.add_periodic_callback(simulation_tick, 30)  # ~33 FPS
@@ -265,6 +337,26 @@ def bokeh_app(doc):
         # Remove periodic callback if exists
         for callback in list(doc.session_callbacks):
             doc.remove_periodic_callback(callback)
+    
+    def set_speed_realtime():
+        simulation.set_speed(1)  # Realtime
+        update_speed_buttons(1)
+        update_data()
+        
+    def set_speed_x4():
+        simulation.set_speed(4)  # 4x speed
+        update_speed_buttons(4)
+        update_data()
+        
+    def set_speed_x8():
+        simulation.set_speed(8)  # 8x speed
+        update_speed_buttons(8)
+        update_data()
+        
+    def set_speed_x16():
+        simulation.set_speed(16)  # 16x speed
+        update_speed_buttons(16)
+        update_data()
     
     def simulation_tick():
         if simulation.is_running:
@@ -279,6 +371,13 @@ def bokeh_app(doc):
     # Connect callbacks
     start_button.on_click(start_simulation)
     stop_button.on_click(stop_simulation)
+    speed_realtime.on_click(set_speed_realtime)
+    speed_x4.on_click(set_speed_x4)
+    speed_x8.on_click(set_speed_x8)
+    speed_x16.on_click(set_speed_x16)
+    
+    # Set initial speed button style
+    update_speed_buttons(SIMULATION_SPEED)
     
     # Add to document (this is key - we add to the document passed to this function)
     layout = row(plot, controls)

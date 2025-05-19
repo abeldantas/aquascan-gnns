@@ -105,7 +105,7 @@ class OceanArea:
         # Get normalized coordinates for Perlin noise
         nx = position[0] / self.length * PERLIN_SCALE
         ny = position[1] / self.width * PERLIN_SCALE
-        nt = time / 86400 * PERLIN_SCALE  # Normalize time (days)
+        nt = time / (86400 * 10) * PERLIN_SCALE  # Normalize time (10x slower time variation)
         
         # Calculate Perlin noise value for angle
         angle_noise = noise.pnoise3(nx, ny, nt, octaves=PERLIN_OCTAVES)
