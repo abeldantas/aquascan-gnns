@@ -30,7 +30,7 @@ ACTIVE_RESOLUTION = "low"  # Choose from RESOLUTIONS keys
 # Communication Parameters
 MAX_COMM_RANGE = 10.0  # km (maximum communication range between ε-nodes)
 OPTIMAL_COMM_RANGE = 5.0  # km (optimal communication range)
-DETECTION_RADIUS = 0.1  # km (100 meters sensor detection radius)
+DETECTION_RADIUS = 0.5  # km (500 meters sensor detection radius)
 
 # Temporal Configuration
 TIME_STEP = 1.0  # seconds per tick
