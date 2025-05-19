@@ -14,10 +14,12 @@ import numpy as np
 from bokeh.plotting import figure, curdoc
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, Button, Div, Slider, Select
-from bokeh.models import Arrow, NormalHead, ColorBar, LinearColorMapper
+from bokeh.models import ColorBar, LinearColorMapper
 from bokeh.palettes import Viridis256
 from bokeh.transform import linear_cmap
 import time
+
+print("Bokeh imports successful")
 
 from config.simulation_config import (
     AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
@@ -68,45 +70,46 @@ class AquascanVisualization:
         self.plot = figure(
             width=PLOT_WIDTH, height=PLOT_HEIGHT,
             title="Aquascan Marine Simulation",
-            x_range=(0, AREA_LENGTH),
-            y_range=(0, AREA_WIDTH),
-            tools="pan,wheel_zoom,box_zoom,reset,save"
+            x_range=(-1, AREA_LENGTH + 1),  # Add some padding
+            y_range=(-1, AREA_WIDTH + 1),   # Add some padding
+            tools="pan,wheel_zoom,box_zoom,reset,save",
+            output_backend="canvas"  # Explicitly set the backend
         )
         
         # Configure plot
-        self.plot.grid.grid_line_color = "white"
-        self.plot.grid.grid_line_alpha = 0.3
+        self.plot.grid.grid_line_color = "lightgray"
+        self.plot.grid.grid_line_alpha = 0.7
+        self.plot.background_fill_color = "#f5f5f5"  # Light gray background
+        self.plot.border_fill_color = "white"
         self.plot.xaxis.axis_label = "Distance along coastline (km)"
         self.plot.yaxis.axis_label = "Distance from shore (km)"
+        
+        print(f"Plot created with x_range: {self.plot.x_range.start} to {self.plot.x_range.end}, "
+              f"y_range: {self.plot.y_range.start} to {self.plot.y_range.end}")
         
         # Add glyph for ε-nodes
         self.epsilon_glyph = self.plot.scatter(
             x='x', y='y', size=8, source=self.epsilon_source,
-            marker='circle', color='color', alpha=0.7, legend_label="ε-nodes"
+            marker='circle', fill_color='color', line_color='color', alpha=0.7, legend_label="ε-nodes"
         )
         
         # Add glyph for σ-nodes
         self.sigma_glyph = self.plot.scatter(
             x='x', y='y', size=12, source=self.sigma_source,
-            marker='square', color='color', alpha=0.9, legend_label="σ-nodes"
+            marker='square', fill_color='color', line_color='color', alpha=0.9, legend_label="σ-nodes"
         )
         
         # Add glyph for θ-contacts
         self.contact_glyph = self.plot.scatter(
             x='x', y='y', size=10, source=self.contact_source,
-            marker='triangle', color='color', alpha=0.8, legend_label="θ-contacts"
+            marker='triangle', fill_color='color', line_color='color', alpha=0.8, legend_label="θ-contacts"
         )
         
-        # Add vector field for ocean currents
-        color_mapper = LinearColorMapper(palette=Viridis256, low=0, high=1)
-        self.current_glyph = self.plot.add_layout(
-            Arrow(
-                x_start='x', y_start='y',
-                x_end='u', y_end='v',
-                source=self.current_source,
-                end=NormalHead(fill_color="blue", line_color="blue", size=6),
-                line_color="blue", line_alpha=0.6, line_width=1
-            )
+        # Add vector field for ocean currents (using segments instead of arrows)
+        self.current_glyph = self.plot.segment(
+            x0='x', y0='y', x1='u', y1='v',
+            source=self.current_source,
+            line_color="blue", line_width=1, line_alpha=0.3
         )
         
         # Add legend configuration
@@ -198,6 +201,12 @@ class AquascanVisualization:
             epsilon_data['id'].append(node.id)
             epsilon_data['color'].append(ENTITY_COLORS["epsilon_node"])
         
+        # Debug: Print some node positions
+        if len(simulation.epsilon_nodes) > 0:
+            print(f"Sample ε-node positions:")
+            for i in range(min(5, len(simulation.epsilon_nodes))):
+                print(f"  Node {simulation.epsilon_nodes[i].id}: {simulation.epsilon_nodes[i].position}")
+        
         # Update σ-nodes
         sigma_data = {
             'x': [], 'y': [], 'id': [], 'color': []
@@ -207,6 +216,11 @@ class AquascanVisualization:
             sigma_data['y'].append(node.position[1])
             sigma_data['id'].append(node.id)
             sigma_data['color'].append(ENTITY_COLORS["sigma_node"])
+        
+        # Debug: Print σ-node positions
+        print(f"σ-node positions:")
+        for node in simulation.sigma_nodes:
+            print(f"  Node {node.id}: {node.position}")
         
         # Update θ-contacts
         contact_data = {
@@ -218,6 +232,12 @@ class AquascanVisualization:
             contact_data['id'].append(contact.id)
             contact_data['type'].append(contact.type)
             contact_data['color'].append(ENTITY_COLORS[contact.type])
+        
+        # Debug: Print some contact positions
+        if len(simulation.theta_contacts) > 0:
+            print(f"Sample θ-contact positions:")
+            for i in range(min(5, len(simulation.theta_contacts))):
+                print(f"  Contact {simulation.theta_contacts[i].id}: {simulation.theta_contacts[i].position}")
         
         print(f"Node counts: {len(epsilon_data['x'])} ε-nodes, {len(sigma_data['x'])} σ-nodes, "
               f"{len(contact_data['x'])} θ-contacts")
