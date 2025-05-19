@@ -56,32 +56,37 @@ def bokeh_app(doc):
     )
     
     # Configure plot
-    plot.grid.grid_line_color = "black"
+    plot.grid.grid_line_color = "rgba(255, 255, 255, 0.3)"  # Lighter grid lines
     plot.grid.grid_line_alpha = 0.7
-    plot.background_fill_color = "#f5f5f5"
-    plot.border_fill_color = "white"
+    plot.background_fill_color = "#4D629B"  # Blue background as requested
+    plot.border_fill_color = "#4D629B"
     plot.xaxis.axis_label = "Distance along coastline (km)"
     plot.yaxis.axis_label = "Distance from shore (km) [Deployment area: 6-22 km]"
+    plot.xaxis.axis_label_text_color = "white"
+    plot.yaxis.axis_label_text_color = "white"
+    plot.xaxis.major_label_text_color = "white"
+    plot.yaxis.major_label_text_color = "white"
+    plot.title.text_color = "white"
     
     # Add glyphs - use basic circle for simplicity
-    # ε-nodes (blue circles)
+    # ε-nodes (blue circles) - smaller size
     plot.circle(
         x='x', y='y', source=epsilon_source,
-        size=8, fill_color='blue', line_color='blue',
+        size=5, fill_color='#3288bd', line_color='#3288bd',
         alpha=0.7, legend_label="ε-nodes"
     )
     
-    # σ-nodes (red squares via specific markers)
+    # σ-nodes (white circles) - larger size
     plot.circle(
         x='x', y='y', source=sigma_source,
-        size=12, fill_color='red', line_color='red',
+        size=20, fill_color='white', line_color='white',
         alpha=0.9, legend_label="σ-nodes"
     )
     
     # θ-contacts (green triangles via specific markers)
     plot.circle(
         x='x', y='y', source=contact_source,
-        size=10, fill_color='green', line_color='green',
+        size=10, fill_color='#d53e4f', line_color='#d53e4f',
         alpha=0.8, legend_label="θ-contacts"
     )
     
@@ -89,9 +94,10 @@ def bokeh_app(doc):
     plot.legend.location = "top_left"
     plot.legend.click_policy = "hide"
     
-    # Info panel
+    # Info panel with white text for dark background
     info_div = Div(
         text=f"""
+        <div style="color: white;">
         <h3>Aquascan Simulation</h3>
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
@@ -99,13 +105,14 @@ def bokeh_app(doc):
         <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> Ready
+        </div>
         """,
         width=400, height=200  # Increased height for more content
     )
     
     # Control buttons
-    start_button = Button(label="Start Simulation", button_type="success")
-    stop_button = Button(label="Stop Simulation", button_type="danger")
+    start_button = Button(label="Start Simulation", button_type="success", width=180)
+    stop_button = Button(label="Stop Simulation", button_type="danger", width=180)
     
     # Layout
     controls = column(
@@ -177,6 +184,7 @@ def bokeh_app(doc):
         status = "running" if simulation.is_running else "stopped"
         
         info_text = f"""
+        <div style="color: white;">
         <h3>Aquascan Simulation</h3>
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
@@ -187,6 +195,7 @@ def bokeh_app(doc):
         <b>Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d}<br>
         <b>Detections:</b> {simulation.stats['detections']}<br>
         <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
+        </div>
         """
         info_div.text = info_text
     
