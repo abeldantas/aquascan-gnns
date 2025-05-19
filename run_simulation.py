@@ -101,18 +101,18 @@ def bokeh_app(doc):
     # Add contact ID labels above detected contacts
     labels_detected = plot.text(
         x='x', y='y', text='label',
-        x_offset=0, y_offset=10,  # Position slightly above the point
+        x_offset=0, y_offset=-17,  # Position below the point instead of above
         text_font_size='8pt', text_color='#00cc00',
-        text_align='center', text_baseline='bottom',
+        text_align='center', text_baseline='top',  # Changed to top baseline
         source=detected_contact_source
     )
     
     # Add contact ID labels above undetected contacts
     labels_undetected = plot.text(
         x='x', y='y', text='label',
-        x_offset=0, y_offset=10,  # Position slightly above the point
+        x_offset=0, y_offset=-17,  # Position below the point instead of above
         text_font_size='8pt', text_color='#999999',
-        text_align='center', text_baseline='bottom',
+        text_align='center', text_baseline='top',  # Changed to top baseline
         source=undetected_contact_source
     )
     
@@ -167,13 +167,21 @@ def bokeh_app(doc):
         speed_x16.button_type = "success" if current_speed == 16 else "default"
     
     # Layout
+    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(15, 0, 5, 0))
+    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(15, 0, 5, 0))
+    
+    # Group the controls in sections with padding
+    simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
+    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, margin=(0, 0, 15, 0))
+    
+    # Create the main control column with proper spacing
     controls = column(
         info_div,
-        Div(text="<h4>Simulation Controls:</h4>", margin=(10, 0, 0, 0)),
-        row(start_button, stop_button),
-        Div(text="<h4>Simulation Speed:</h4>", margin=(10, 0, 0, 0)),
-        row(speed_realtime, speed_x4, speed_x8, speed_x16),
-        Div(text="<div style='margin-top: auto;'></div>", height=150)  # Flexible spacer
+        control_header,
+        simulation_buttons,
+        speed_header,
+        speed_buttons,
+        sizing_mode="stretch_width"
     )
     
     # Update data function
@@ -361,6 +369,10 @@ def bokeh_app(doc):
     def simulation_tick():
         if simulation.is_running:
             # Apply simulation speed - advance time faster than the visualization updates
+            # Get the current simulation speed from config
+            from config.simulation_config import SIMULATION_SPEED
+            
+            # Check if we need to update at this tick (for very low speeds)
             simulation.tick()
             update_data()
         else:
@@ -377,6 +389,7 @@ def bokeh_app(doc):
     speed_x16.on_click(set_speed_x16)
     
     # Set initial speed button style
+    from config.simulation_config import SIMULATION_SPEED
     update_speed_buttons(SIMULATION_SPEED)
     
     # Add to document (this is key - we add to the document passed to this function)

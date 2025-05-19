@@ -134,8 +134,18 @@ class AquascanSimulation:
         Args:
             speed_factor (int): Speed multiplier (1 = realtime, etc.)
         """
+        # Import within method to avoid circular imports
+        from config.simulation_config import SIMULATION_SPEED as CONFIG_SPEED
+        
+        # Update the global variable in the module where it's defined
+        import sys
+        config_module = sys.modules['config.simulation_config']
+        setattr(config_module, 'SIMULATION_SPEED', speed_factor)
+        
+        # Also update the local reference
         global SIMULATION_SPEED
         SIMULATION_SPEED = speed_factor
+        
         print(f"Simulation speed set to {speed_factor}x")
         
     def stop(self):
