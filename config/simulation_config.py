@@ -16,6 +16,7 @@ All parameter values can be adjusted here without modifying the core simulation 
 AREA_LENGTH = 30.0  # km (along coastline)
 AREA_WIDTH = 16.0   # km (seaward extension)
 SHORE_DISTANCE = 6.0  # km (distance from shore to start of area)
+# The area starts at SHORE_DISTANCE (6km) and ends at SHORE_DISTANCE + AREA_WIDTH (22km)
 
 # Sensor Network Configuration
 RESOLUTIONS = {

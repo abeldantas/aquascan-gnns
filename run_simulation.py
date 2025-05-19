@@ -48,10 +48,10 @@ def bokeh_app(doc):
     
     # Create main plot
     plot = figure(
-        width=PLOT_WIDTH, height=PLOT_HEIGHT,
+        width=1200, height=800,  # Increased size to fill more of the browser window
         title="Aquascan Marine Simulation",
         x_range=(-1, AREA_LENGTH + 1),
-        y_range=(-1, AREA_WIDTH + 1),
+        y_range=(SHORE_DISTANCE - 1, SHORE_DISTANCE + AREA_WIDTH + 1),  # Adjust y_range to reflect the actual area
         tools="pan,wheel_zoom,box_zoom,reset,save",
     )
     
@@ -61,7 +61,7 @@ def bokeh_app(doc):
     plot.background_fill_color = "#f5f5f5"
     plot.border_fill_color = "white"
     plot.xaxis.axis_label = "Distance along coastline (km)"
-    plot.yaxis.axis_label = "Distance from shore (km)"
+    plot.yaxis.axis_label = "Distance from shore (km) [Deployment area: 6-22 km]"
     
     # Add glyphs - use basic circle for simplicity
     # ε-nodes (blue circles)
@@ -91,8 +91,16 @@ def bokeh_app(doc):
     
     # Info panel
     info_div = Div(
-        text="Simulation not started",
-        width=400, height=100
+        text=f"""
+        <h3>Aquascan Simulation</h3>
+        <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
+        <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
+        <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
+        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
+        <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
+        <b>Status:</b> Ready
+        """,
+        width=400, height=200  # Increased height for more content
     )
     
     # Control buttons
@@ -169,10 +177,16 @@ def bokeh_app(doc):
         status = "running" if simulation.is_running else "stopped"
         
         info_text = f"""
-        <b>Simulation {status}</b><br>
-        Time: {hours:02d}:{minutes:02d}:{seconds:02d}<br>
-        Detections: {simulation.stats['detections']}<br>
-        Messages delivered: {simulation.stats['messages_delivered']}
+        <h3>Aquascan Simulation</h3>
+        <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
+        <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
+        <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
+        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
+        <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
+        <b>Status:</b> {status.capitalize()}<br>
+        <b>Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d}<br>
+        <b>Detections:</b> {simulation.stats['detections']}<br>
+        <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
         """
         info_div.text = info_text
     

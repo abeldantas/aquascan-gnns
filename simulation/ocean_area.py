@@ -42,18 +42,34 @@ class OceanArea:
     
     def _deploy_epsilon_nodes(self):
         """Deploy ε-nodes in a hexagonal grid pattern."""
+        # Create a grid that starts at SHORE_DISTANCE from shore
         positions = get_deployment_positions(self.length, self.width, self.resolution)
+        
+        # Offset the positions to start at SHORE_DISTANCE from shore
+        # This shifts all y-coordinates by SHORE_DISTANCE
+        for i in range(len(positions)):
+            positions[i][1] += self.shore_distance
+            
         print(f"Deployed {len(positions)} ε-nodes with resolution {self.resolution}km")
+        print(f"  - Area spans from {self.shore_distance}km to {self.shore_distance + self.width}km from shore")
+        print(f"  - Area extends {self.length}km along the coastline")
+        
         return positions
     
     def _deploy_sigma_nodes(self):
         """Position σ-nodes at strategic locations for relay purposes."""
-        # Place 3 sigma nodes along the shoreline side (x=0) at 1/4, 1/2, and 3/4 of the length
+        # Place sigma nodes along the shore side (at x=0) at the edge of the deployment area
+        # Place at 1/4, 1/2, and 3/4 of the length
         positions = np.array([
-            [0, self.width * 0.25],
-            [0, self.width * 0.5],
-            [0, self.width * 0.75]
+            [0, self.shore_distance + self.width * 0.25],
+            [0, self.shore_distance + self.width * 0.5],
+            [0, self.shore_distance + self.width * 0.75]
         ])
+        
+        print(f"Deployed σ-nodes at positions:")
+        for pos in positions:
+            print(f"  - ({pos[0]:.1f}, {pos[1]:.1f}) km")
+            
         return positions
     
     def _calculate_connections(self):
