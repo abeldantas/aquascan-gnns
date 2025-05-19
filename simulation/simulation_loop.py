@@ -16,7 +16,8 @@ import time
 
 from config.simulation_config import (
     TIME_STEP, SIMULATION_DURATION, MARINE_ENTITIES,
-    ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE
+    ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE,
+    SIMULATION_SPEED
 )
 from simulation.ocean_area import OceanArea
 from simulation.entities import EpsilonNode, SigmaNode, ThetaContact
@@ -178,8 +179,8 @@ class AquascanSimulation:
         if self.visualization_callback:
             self.visualization_callback(self)
         
-        # Increment time
-        self.current_time += TIME_STEP
+        # Increment time - apply simulation speed factor
+        self.current_time += TIME_STEP * SIMULATION_SPEED
         
         return True
     

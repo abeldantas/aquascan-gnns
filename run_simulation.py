@@ -24,7 +24,8 @@ def bokeh_app(doc):
     from simulation.simulation_loop import AquascanSimulation
     from config.simulation_config import (
         AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
-        VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT, SHORE_DISTANCE
+        VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT, SHORE_DISTANCE,
+        SIMULATION_SPEED
     )
     import numpy as np
     from bokeh.plotting import figure
@@ -88,11 +89,11 @@ def bokeh_app(doc):
         alpha=0.8, legend_label="θ-contacts (detected)"
     )
     
-    # θ-contacts not detected (grey)
+    # θ-contacts not detected (grey) - no legend
     plot.circle(
         x='x', y='y', source=undetected_contact_source,
         size=10, fill_color='#999999', line_color='#999999',
-        alpha=0.8, legend_label="θ-contacts (not detected)"
+        alpha=0.8  # No legend_label
     )
     
     # Configure legend
@@ -241,7 +242,7 @@ def bokeh_app(doc):
         <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes, {len(simulation.sigma_nodes)} σ-nodes<br>
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> {status.capitalize()}<br>
-        <b>Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d}<br>
+        <b>Simulation Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d} ({SIMULATION_SPEED}x real-time)<br>
         <b>Total Detections:</b> {simulation.stats['detections']}<br>
         <b>Currently Detected:</b> {currently_detected} contacts<br>
         <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
@@ -255,8 +256,8 @@ def bokeh_app(doc):
     def start_simulation():
         simulation.start()
         update_data()
-        # Increase the update frequency for more fluid animation (100ms instead of 500ms)
-        doc.add_periodic_callback(simulation_tick, 100)  # 10 FPS
+        # Increase the update frequency for more fluid animation (30+ FPS)
+        doc.add_periodic_callback(simulation_tick, 30)  # ~33 FPS
     
     def stop_simulation():
         simulation.stop()
@@ -267,6 +268,7 @@ def bokeh_app(doc):
     
     def simulation_tick():
         if simulation.is_running:
+            # Apply simulation speed - advance time faster than the visualization updates
             simulation.tick()
             update_data()
         else:

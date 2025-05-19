@@ -37,6 +37,7 @@ TIME_STEP = 1.0  # seconds per tick
 SIMULATION_DURATION = 60 * 60 * 24 * 7  # 1 week in seconds
 SAVE_INTERVAL = 300  # Save simulation state every 5 minutes
 MOTION_SUBSTEPS = 5  # Number of substeps for smoother motion calculations
+SIMULATION_SPEED = 10.0  # Simulation runs 10x faster than real time
 
 # Marine Entity Configuration
 MARINE_ENTITIES = {
@@ -45,7 +46,7 @@ MARINE_ENTITIES = {
         "motion_model": "brownian",
         "count": 3,
         "typical_volume": 0.01,  # cubic meters
-        "speed_range": (0.5, 2.0),  # m/s
+        "speed_range": (0.1, 0.4),  # m/s (reduced from 0.5-2.0)
         "turn_frequency": 0.1,  # probability of changing direction per second
     },
     "atlantic_horse_mackerel": {
@@ -53,7 +54,7 @@ MARINE_ENTITIES = {
         "motion_model": "brownian",
         "count": 3,
         "typical_volume": 0.007,  # cubic meters
-        "speed_range": (0.7, 2.5),  # m/s
+        "speed_range": (0.15, 0.5),  # m/s (reduced from 0.7-2.5)
         "turn_frequency": 0.15,  # probability of changing direction per second
     },
     "bottlenose_dolphin": {
@@ -61,7 +62,7 @@ MARINE_ENTITIES = {
         "motion_model": "sinusoidal",
         "count": 1,  # Less common
         "typical_volume": 3.5,  # cubic meters
-        "speed_range": (1.5, 6.0),  # m/s
+        "speed_range": (0.3, 1.2),  # m/s (reduced from 1.5-6.0)
         "amplitude": 0.5,  # km
         "period": 300,  # seconds
     }
