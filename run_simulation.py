@@ -227,8 +227,9 @@ def bokeh_app(doc):
         minutes = int((elapsed_time % 3600) / 60)
         seconds = int(elapsed_time % 60)
         
-        # Count currently detected contacts
-        currently_detected = sum(1 for detected in contact_data['detected'] if detected)
+        # Count currently detected contacts - now we just use the length of detected_data
+        # since we already separated them
+        currently_detected = len(detected_data['id'])
         
         status = "running" if simulation.is_running else "stopped"
         
