@@ -80,21 +80,21 @@ class AquascanVisualization:
         self.plot.yaxis.axis_label = "Distance from shore (km)"
         
         # Add glyph for ε-nodes
-        self.epsilon_glyph = self.plot.circle(
+        self.epsilon_glyph = self.plot.scatter(
             x='x', y='y', size=8, source=self.epsilon_source,
-            color='color', alpha=0.7, legend_label="ε-nodes"
+            marker='circle', color='color', alpha=0.7, legend_label="ε-nodes"
         )
         
         # Add glyph for σ-nodes
-        self.sigma_glyph = self.plot.square(
+        self.sigma_glyph = self.plot.scatter(
             x='x', y='y', size=12, source=self.sigma_source,
-            color='color', alpha=0.9, legend_label="σ-nodes"
+            marker='square', color='color', alpha=0.9, legend_label="σ-nodes"
         )
         
         # Add glyph for θ-contacts
-        self.contact_glyph = self.plot.triangle(
+        self.contact_glyph = self.plot.scatter(
             x='x', y='y', size=10, source=self.contact_source,
-            color='color', alpha=0.8, legend_label="θ-contacts"
+            marker='triangle', color='color', alpha=0.8, legend_label="θ-contacts"
         )
         
         # Add vector field for ocean currents
@@ -102,7 +102,7 @@ class AquascanVisualization:
         self.current_glyph = self.plot.add_layout(
             Arrow(
                 x_start='x', y_start='y',
-                x_end='x', y_end='y',
+                x_end='u', y_end='v',
                 source=self.current_source,
                 end=NormalHead(fill_color="blue", line_color="blue", size=6),
                 line_color="blue", line_alpha=0.6, line_width=1
@@ -185,6 +185,9 @@ class AquascanVisualization:
         Args:
             simulation (AquascanSimulation): The simulation instance
         """
+        print(f"Updating visualization with {len(simulation.epsilon_nodes)} ε-nodes, "
+              f"{len(simulation.sigma_nodes)} σ-nodes, and {len(simulation.theta_contacts)} θ-contacts")
+        
         # Update ε-nodes
         epsilon_data = {
             'x': [], 'y': [], 'id': [], 'color': []
@@ -216,6 +219,9 @@ class AquascanVisualization:
             contact_data['type'].append(contact.type)
             contact_data['color'].append(ENTITY_COLORS[contact.type])
         
+        print(f"Node counts: {len(epsilon_data['x'])} ε-nodes, {len(sigma_data['x'])} σ-nodes, "
+              f"{len(contact_data['x'])} θ-contacts")
+        
         # Update currents (sample at grid points)
         grid_size = 1.0  # 1 km grid for currents
         current_data = {
@@ -245,6 +251,8 @@ class AquascanVisualization:
         self.contact_source.data = contact_data
         self.current_source.data = current_data
         
+        print(f"Updated current_source with {len(current_data['x'])} points")
+        
         # Update info display
         elapsed_time = simulation.current_time
         hours = int(elapsed_time / 3600)
@@ -266,6 +274,9 @@ class AquascanVisualization:
 def initialize():
     """Initialize the Bokeh visualization app."""
     viz = AquascanVisualization()
+    # Pre-initialize the simulation
+    viz.simulation.initialize()
+    viz.update_data(viz.simulation)
     return viz
 
 

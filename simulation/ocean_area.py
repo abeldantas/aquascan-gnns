@@ -42,7 +42,9 @@ class OceanArea:
     
     def _deploy_epsilon_nodes(self):
         """Deploy ε-nodes in a hexagonal grid pattern."""
-        return get_deployment_positions(self.length, self.width, self.resolution)
+        positions = get_deployment_positions(self.length, self.width, self.resolution)
+        print(f"Deployed {len(positions)} ε-nodes with resolution {self.resolution}km")
+        return positions
     
     def _deploy_sigma_nodes(self):
         """Position σ-nodes at strategic locations for relay purposes."""
