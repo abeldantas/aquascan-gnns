@@ -55,8 +55,8 @@ aquascan-gnns/
 
 ## Important Parameters
 - **Geographic Area**: 30km × 16km (from 6km to 22km offshore)
-- **Resolution**: 500m spacing (approximately 2,220 ε-nodes)
-- **Detection Radius**: 100m (visual indication with color change)
+- **Resolution**: 1km spacing (570 ε-nodes)
+- **Detection Radius**: 200m (visual indication with color change)
 - **Time Step**: 1 second
 - **Communication Range**: 10km maximum, 5km optimal
 
@@ -77,7 +77,7 @@ aquascan-gnns/
 
 ## Visualization Features
 - Real-time display of node and contact positions
-- Visual detection indicator (bright green when contacts are within detection radius)
+- Visual detection indicator (bright green when detected, grey when not detected)
 - Deployment area outline
 - Information panel with simulation statistics
 - Start/stop controls

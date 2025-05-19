@@ -176,7 +176,7 @@ def bokeh_app(doc):
                     detecting_nodes.append(node.id)
             
             # Set color based on detection status
-            color = '#00cc00' if is_detected else '#99d594'  # Bright green if detected, regular green otherwise
+            color = '#00cc00' if is_detected else '#999999'  # Bright green if detected, grey otherwise
             
             contact_data['x'].append(contact.position[0])
             contact_data['y'].append(contact.position[1])
