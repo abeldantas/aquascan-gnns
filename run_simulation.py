@@ -49,7 +49,7 @@ def bokeh_app(doc):
     # Create main plot
     plot = figure(
         width=1200, height=800,  # Increased size to fill more of the browser window
-        title="Aquascan Marine Simulation",
+        title="",  # Remove the title
         x_range=(-3, AREA_LENGTH + 3),  # Add 3km extra view on each side
         y_range=(SHORE_DISTANCE - 3, SHORE_DISTANCE + AREA_WIDTH + 3),  # Add 3km extra view on each side
         tools="pan,wheel_zoom,box_zoom,reset,save",
@@ -101,7 +101,7 @@ def bokeh_app(doc):
     # Info panel
     info_div = Div(
         text=f"""
-        <h3>Aquascan Simulation</h3>
+        <h3>Simulation Details</h3>
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
         <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
@@ -119,6 +119,7 @@ def bokeh_app(doc):
     # Layout
     controls = column(
         info_div,
+        Div(text="<div style='height:40px;'></div>"),  # Add spacing
         row(start_button, stop_button)
     )
     
@@ -214,7 +215,7 @@ def bokeh_app(doc):
         status = "running" if simulation.is_running else "stopped"
         
         info_text = f"""
-        <h3>Aquascan Simulation</h3>
+        <h3>Simulation Details</h3>
         <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
         <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
         <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>

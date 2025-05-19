@@ -16,7 +16,7 @@ in the marine monitoring system.
 import numpy as np
 from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
-    MAX_COMM_RANGE, TIME_STEP
+    MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS
 )
 
 
@@ -216,62 +216,75 @@ class ThetaContact(BaseEntity):
             self._update_sinusoidal(current_time, ocean_area)
     
     def _update_brownian(self, current_time, ocean_area):
-        """Update position using Brownian motion model."""
-        # Randomly change direction with some probability
-        if np.random.random() < self.turn_frequency * TIME_STEP:
-            # Change direction by a random angle
-            self.direction += np.random.normal(0, np.pi/4)
-            self.direction %= 2 * np.pi
+        """Update position using Brownian motion model with substeps for smoother movement."""
+        # Use substeps for smoother motion
+        sub_time_step = TIME_STEP / MOTION_SUBSTEPS
         
-        # Calculate movement vector
-        dx = self.speed * np.cos(self.direction) * TIME_STEP
-        dy = self.speed * np.sin(self.direction) * TIME_STEP
-        
-        # Apply movement
-        new_position = self.position + np.array([dx, dy])
-        
-        # Check if new position is within bounds
-        if ocean_area.is_within_bounds(new_position):
-            self.position = new_position
-        else:
-            # If outside bounds, reflect direction (bounce off the edge)
-            self.direction = np.random.uniform(0, 2 * np.pi)
+        for _ in range(MOTION_SUBSTEPS):
+            # Randomly change direction with some probability
+            if np.random.random() < self.turn_frequency * sub_time_step:
+                # Change direction by a random angle
+                self.direction += np.random.normal(0, np.pi/4)
+                self.direction %= 2 * np.pi
+            
+            # Calculate movement vector for this substep
+            dx = self.speed * np.cos(self.direction) * sub_time_step
+            dy = self.speed * np.sin(self.direction) * sub_time_step
+            
+            # Apply movement
+            new_position = self.position + np.array([dx, dy])
+            
+            # Check if new position is within bounds
+            if ocean_area.is_within_bounds(new_position):
+                self.position = new_position
+            else:
+                # If outside bounds, reflect direction (bounce off the edge)
+                self.direction = np.random.uniform(0, 2 * np.pi)
+                # Try again with new direction in next substep
     
     def _update_sinusoidal(self, current_time, ocean_area):
-        """Update position using sinusoidal motion model (for dolphins)."""
-        # Calculate forward direction
-        forward_x = self.speed * np.cos(self.base_direction) * TIME_STEP
-        forward_y = self.speed * np.sin(self.base_direction) * TIME_STEP
+        """Update position using sinusoidal motion model with substeps for smoother movement."""
+        # Use substeps for smoother motion
+        sub_time_step = TIME_STEP / MOTION_SUBSTEPS
         
-        # Calculate sinusoidal component perpendicular to forward direction
-        phase_time = current_time % self.period
-        phase_factor = (phase_time / self.period) * 2 * np.pi + self.phase
-        sine_factor = np.sin(phase_factor)
-        
-        # Perpendicular direction
-        perp_x = -forward_y
-        perp_y = forward_x
-        
-        # Normalize perpendicular vector
-        perp_len = np.sqrt(perp_x**2 + perp_y**2)
-        if perp_len > 0:
-            perp_x /= perp_len
-            perp_y /= perp_len
-        
-        # Apply sinusoidal offset
-        lateral_offset = self.amplitude * sine_factor * TIME_STEP
-        
-        # Final movement
-        dx = forward_x + perp_x * lateral_offset
-        dy = forward_y + perp_y * lateral_offset
-        
-        # Apply movement
-        new_position = self.position + np.array([dx, dy])
-        
-        # Check if new position is within bounds
-        if ocean_area.is_within_bounds(new_position):
-            self.position = new_position
-        else:
-            # If outside bounds, reverse course
-            self.base_direction = (self.base_direction + np.pi) % (2 * np.pi)
-            self.phase = np.random.uniform(0, 2 * np.pi)
+        for _ in range(MOTION_SUBSTEPS):
+            # Calculate forward direction
+            forward_x = self.speed * np.cos(self.base_direction) * sub_time_step
+            forward_y = self.speed * np.sin(self.base_direction) * sub_time_step
+            
+            # Calculate sinusoidal component perpendicular to forward direction
+            phase_time = current_time % self.period
+            phase_factor = (phase_time / self.period) * 2 * np.pi + self.phase
+            sine_factor = np.sin(phase_factor)
+            
+            # Perpendicular direction
+            perp_x = -forward_y
+            perp_y = forward_x
+            
+            # Normalize perpendicular vector
+            perp_len = np.sqrt(perp_x**2 + perp_y**2)
+            if perp_len > 0:
+                perp_x /= perp_len
+                perp_y /= perp_len
+            
+            # Apply sinusoidal offset
+            lateral_offset = self.amplitude * sine_factor * sub_time_step
+            
+            # Final movement
+            dx = forward_x + perp_x * lateral_offset
+            dy = forward_y + perp_y * lateral_offset
+            
+            # Apply movement
+            new_position = self.position + np.array([dx, dy])
+            
+            # Check if new position is within bounds
+            if ocean_area.is_within_bounds(new_position):
+                self.position = new_position
+            else:
+                # If outside bounds, reverse course
+                self.base_direction = (self.base_direction + np.pi) % (2 * np.pi)
+                self.phase = np.random.uniform(0, 2 * np.pi)
+                # Will try with new direction in next substep
+            
+            # Update current_time for next substep
+            current_time += sub_time_step

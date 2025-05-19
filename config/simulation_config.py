@@ -36,6 +36,7 @@ DETECTION_RADIUS = 0.2  # km (200 meters sensor detection radius)
 TIME_STEP = 1.0  # seconds per tick
 SIMULATION_DURATION = 60 * 60 * 24 * 7  # 1 week in seconds
 SAVE_INTERVAL = 300  # Save simulation state every 5 minutes
+MOTION_SUBSTEPS = 5  # Number of substeps for smoother motion calculations
 
 # Marine Entity Configuration
 MARINE_ENTITIES = {
