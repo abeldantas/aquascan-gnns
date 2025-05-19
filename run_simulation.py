@@ -50,44 +50,53 @@ def bokeh_app(doc):
     plot = figure(
         width=1200, height=800,  # Increased size to fill more of the browser window
         title="Aquascan Marine Simulation",
-        x_range=(-1, AREA_LENGTH + 1),
-        y_range=(SHORE_DISTANCE - 1, SHORE_DISTANCE + AREA_WIDTH + 1),  # Adjust y_range to reflect the actual area
+        x_range=(-3, AREA_LENGTH + 3),  # Add 3km extra view on each side
+        y_range=(SHORE_DISTANCE - 3, SHORE_DISTANCE + AREA_WIDTH + 3),  # Add 3km extra view on each side
         tools="pan,wheel_zoom,box_zoom,reset,save",
     )
     
     # Configure plot
-    plot.grid.grid_line_color = "black"
-    plot.grid.grid_line_alpha = 0.7
-    plot.background_fill_color = "#f5f5f5"
-    plot.border_fill_color = "white"
+    plot.grid.grid_line_color = "rgba(0, 0, 100, 0.2)"  # Light blue grid
+    plot.grid.grid_line_alpha = 0.5
+    plot.background_fill_color = "#e6f3ff"  # Super light blue background
+    plot.border_fill_color = "#e6f3ff"  # Match the border with the background
     plot.xaxis.axis_label = "Distance along coastline (km)"
     plot.yaxis.axis_label = "Distance from shore (km) [Deployment area: 6-22 km]"
     
     # Add glyphs - use basic circle for simplicity
-    # ε-nodes (blue circles)
+    # ε-nodes (blue circles) - smaller size
     plot.circle(
         x='x', y='y', source=epsilon_source,
-        size=8, fill_color='blue', line_color='blue',
+        size=4, fill_color='#3288bd', line_color='#3288bd',
         alpha=0.7, legend_label="ε-nodes"
     )
     
-    # σ-nodes (red squares via specific markers)
+    # σ-nodes (red squares) - larger size
     plot.circle(
         x='x', y='y', source=sigma_source,
-        size=12, fill_color='red', line_color='red',
+        size=16, fill_color='#fc8d59', line_color='#fc8d59',
         alpha=0.9, legend_label="σ-nodes"
     )
     
-    # θ-contacts (green triangles via specific markers)
+    # θ-contacts (green triangles)
     plot.circle(
         x='x', y='y', source=contact_source,
-        size=10, fill_color='green', line_color='green',
+        size=10, fill_color='#99d594', line_color='#99d594',
         alpha=0.8, legend_label="θ-contacts"
     )
     
     # Configure legend
     plot.legend.location = "top_left"
     plot.legend.click_policy = "hide"
+    
+    # Add deployment area outline as a semi-transparent rectangle to highlight the area
+    # This rectangle outlines the deployment area from 6-22km offshore and 0-30km along coastline
+    plot.rect(
+        x=AREA_LENGTH/2, y=SHORE_DISTANCE + AREA_WIDTH/2,  # Center of the rectangle 
+        width=AREA_LENGTH, height=AREA_WIDTH,
+        fill_color=None, line_color='#999999', line_width=2, line_dash='dashed',
+        alpha=0.5
+    )
     
     # Info panel
     info_div = Div(
