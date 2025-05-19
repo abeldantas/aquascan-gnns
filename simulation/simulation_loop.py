@@ -16,7 +16,7 @@ import time
 
 from config.simulation_config import (
     TIME_STEP, SIMULATION_DURATION, MARINE_ENTITIES,
-    ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH
+    ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE
 )
 from simulation.ocean_area import OceanArea
 from simulation.entities import EpsilonNode, SigmaNode, ThetaContact
@@ -77,10 +77,10 @@ class AquascanSimulation:
         
         for species_type, config in MARINE_ENTITIES.items():
             for i in range(config["count"]):
-                # Random position within the ocean area
+                # Random position within the ocean area (accounting for shore_distance)
                 position = [
                     np.random.uniform(0, AREA_LENGTH),
-                    np.random.uniform(0, AREA_WIDTH)
+                    np.random.uniform(SHORE_DISTANCE, SHORE_DISTANCE + AREA_WIDTH)
                 ]
                 
                 # Create the contact

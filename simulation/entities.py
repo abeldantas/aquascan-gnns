@@ -87,7 +87,9 @@ class EpsilonNode(BaseEntity):
         if not ocean_area.is_within_bounds(self.position):
             # If outside bounds, move back inside
             self.position[0] = np.clip(self.position[0], 0, ocean_area.length)
-            self.position[1] = np.clip(self.position[1], 0, ocean_area.width)
+            self.position[1] = np.clip(self.position[1], 
+                                       ocean_area.shore_distance, 
+                                       ocean_area.shore_distance + ocean_area.width)
         
         self.last_update_time = current_time
     

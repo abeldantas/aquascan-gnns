@@ -126,7 +126,11 @@ class OceanArea:
     def is_within_bounds(self, position):
         """Check if a position is within the simulation area."""
         x, y = position
-        return 0 <= x <= self.length and 0 <= y <= self.width
+        # Check if within x bounds (0 to length)
+        x_ok = 0 <= x <= self.length
+        # Check if within y bounds (shore_distance to shore_distance + width)
+        y_ok = self.shore_distance <= y <= (self.shore_distance + self.width)
+        return x_ok and y_ok
     
     def calculate_distance(self, pos1, pos2):
         """Calculate distance between two positions in km."""
