@@ -78,10 +78,10 @@ def bokeh_app(doc):
         alpha=0.9, legend_label="σ-nodes"
     )
     
-    # θ-contacts (green triangles)
+    # θ-contacts (conditional color based on detection)
     plot.circle(
         x='x', y='y', source=contact_source,
-        size=10, fill_color='#99d594', line_color='#99d594',
+        size=10, fill_color='color', line_color='color',
         alpha=0.8, legend_label="θ-contacts"
     )
     
@@ -157,20 +157,45 @@ def bokeh_app(doc):
         
         # Update θ-contacts
         contact_data = {
-            'x': [], 'y': [], 'id': [], 'type': [], 'color': []
+            'x': [], 'y': [], 'id': [], 'type': [], 'color': [], 'detected': []
         }
+        
+        # For each contact, check if it's within detection range of any epsilon node
+        detection_radius_km = simulation.epsilon_nodes[0].detection_radius if simulation.epsilon_nodes else 0.1
+        print(f"Detection radius: {detection_radius_km}km")
+        
         for contact in simulation.theta_contacts:
+            is_detected = False
+            detecting_nodes = []
+            
+            # Check if within detection radius of any epsilon node
+            for node in simulation.epsilon_nodes:
+                distance = np.linalg.norm(node.position - contact.position)
+                if distance <= detection_radius_km:
+                    is_detected = True
+                    detecting_nodes.append(node.id)
+            
+            # Set color based on detection status
+            color = '#00cc00' if is_detected else '#99d594'  # Bright green if detected, regular green otherwise
+            
             contact_data['x'].append(contact.position[0])
             contact_data['y'].append(contact.position[1])
             contact_data['id'].append(contact.id)
             contact_data['type'].append(contact.type)
-            contact_data['color'].append('green')
+            contact_data['color'].append(color)
+            contact_data['detected'].append(is_detected)
+            
+            # Print detection information
+            if is_detected:
+                print(f"Contact {contact.id} detected by nodes: {', '.join(detecting_nodes)}")
         
         # Print sample contact positions
         if len(simulation.theta_contacts) > 0:
-            print(f"Sample θ-contact positions:")
+            print(f"Sample θ-contact positions and detection status:")
             for i in range(min(5, len(simulation.theta_contacts))):
-                print(f"  Contact {simulation.theta_contacts[i].id}: {simulation.theta_contacts[i].position}")
+                idx = contact_data['id'].index(simulation.theta_contacts[i].id)
+                status = "DETECTED" if contact_data['detected'][idx] else "not detected"
+                print(f"  Contact {simulation.theta_contacts[i].id}: {simulation.theta_contacts[i].position} - {status}")
         
         # Update data sources
         epsilon_source.data = epsilon_data
@@ -183,6 +208,9 @@ def bokeh_app(doc):
         minutes = int((elapsed_time % 3600) / 60)
         seconds = int(elapsed_time % 60)
         
+        # Count currently detected contacts
+        currently_detected = sum(1 for detected in contact_data['detected'] if detected)
+        
         status = "running" if simulation.is_running else "stopped"
         
         info_text = f"""
@@ -194,7 +222,8 @@ def bokeh_app(doc):
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> {status.capitalize()}<br>
         <b>Time:</b> {hours:02d}:{minutes:02d}:{seconds:02d}<br>
-        <b>Detections:</b> {simulation.stats['detections']}<br>
+        <b>Total Detections:</b> {simulation.stats['detections']}<br>
+        <b>Currently Detected:</b> {currently_detected} contacts<br>
         <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
         """
         info_div.text = info_text

@@ -114,7 +114,8 @@ class EpsilonNode(BaseEntity):
                 "theta_id": contact.id,
                 "position": contact.position.copy(),
                 "estimated_volume": contact.volume,
-                "entity_type": contact.species_name
+                "entity_type": contact.species_name,
+                "distance": distance  # Store the distance for analysis
             }
             
             # Store in Distributed Observation Buffer
