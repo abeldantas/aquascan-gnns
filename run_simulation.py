@@ -24,7 +24,7 @@ def bokeh_app(doc):
     from simulation.simulation_loop import AquascanSimulation
     from config.simulation_config import (
         AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
-        VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT
+        VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT, SHORE_DISTANCE
     )
     import numpy as np
     from bokeh.plotting import figure
