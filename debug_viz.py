@@ -21,7 +21,12 @@ from visual.simple_viz import initialize
 
 def bokeh_app(doc):
     """Initialize the Bokeh application with the simple Aquascan visualization."""
-    initialize()
+    from visual.simple_viz import initialize
+    
+    # Get the layout from initialize() and add it to the document
+    layout = initialize()
+    doc.add_root(layout)
+    doc.title = "Aquascan Debug Visualization"
 
 
 def main():

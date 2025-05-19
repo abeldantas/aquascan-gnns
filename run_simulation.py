@@ -10,19 +10,205 @@ import os
 import sys
 from bokeh.server.server import Server
 from tornado.ioloop import IOLoop
+from bokeh.layouts import row
+from bokeh.plotting import curdoc
 
 # Make sure the project root is in the path
 script_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
 sys.path.insert(0, project_root)
 
-from visual.bokeh_app import initialize
-
-
 def bokeh_app(doc):
     """Initialize the Bokeh application with the Aquascan visualization."""
-    viz = initialize()
-    # The viz object creates and adds all the necessary elements to the document
+    # Import here to avoid circular imports
+    from simulation.simulation_loop import AquascanSimulation
+    from config.simulation_config import (
+        AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
+        VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT
+    )
+    import numpy as np
+    from bokeh.plotting import figure
+    from bokeh.layouts import column, row
+    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select
+    
+    # Create simulation instance
+    simulation = AquascanSimulation()
+    simulation.initialize()
+    
+    # Data sources for Bokeh
+    epsilon_source = ColumnDataSource({
+        'x': [], 'y': [], 'id': [], 'color': []
+    })
+    sigma_source = ColumnDataSource({
+        'x': [], 'y': [], 'id': [], 'color': []
+    })
+    contact_source = ColumnDataSource({
+        'x': [], 'y': [], 'id': [], 'type': [], 'color': []
+    })
+    
+    # Create main plot
+    plot = figure(
+        width=PLOT_WIDTH, height=PLOT_HEIGHT,
+        title="Aquascan Marine Simulation",
+        x_range=(-1, AREA_LENGTH + 1),
+        y_range=(-1, AREA_WIDTH + 1),
+        tools="pan,wheel_zoom,box_zoom,reset,save",
+    )
+    
+    # Configure plot
+    plot.grid.grid_line_color = "black"
+    plot.grid.grid_line_alpha = 0.7
+    plot.background_fill_color = "#f5f5f5"
+    plot.border_fill_color = "white"
+    plot.xaxis.axis_label = "Distance along coastline (km)"
+    plot.yaxis.axis_label = "Distance from shore (km)"
+    
+    # Add glyphs - use basic circle for simplicity
+    # ε-nodes (blue circles)
+    plot.circle(
+        x='x', y='y', source=epsilon_source,
+        size=8, fill_color='blue', line_color='blue',
+        alpha=0.7, legend_label="ε-nodes"
+    )
+    
+    # σ-nodes (red squares via specific markers)
+    plot.circle(
+        x='x', y='y', source=sigma_source,
+        size=12, fill_color='red', line_color='red',
+        alpha=0.9, legend_label="σ-nodes"
+    )
+    
+    # θ-contacts (green triangles via specific markers)
+    plot.circle(
+        x='x', y='y', source=contact_source,
+        size=10, fill_color='green', line_color='green',
+        alpha=0.8, legend_label="θ-contacts"
+    )
+    
+    # Configure legend
+    plot.legend.location = "top_left"
+    plot.legend.click_policy = "hide"
+    
+    # Info panel
+    info_div = Div(
+        text="Simulation not started",
+        width=400, height=100
+    )
+    
+    # Control buttons
+    start_button = Button(label="Start Simulation", button_type="success")
+    stop_button = Button(label="Stop Simulation", button_type="danger")
+    
+    # Layout
+    controls = column(
+        info_div,
+        row(start_button, stop_button)
+    )
+    
+    # Update data function
+    def update_data():
+        # Update ε-nodes
+        epsilon_data = {
+            'x': [], 'y': [], 'id': [], 'color': []
+        }
+        for node in simulation.epsilon_nodes:
+            epsilon_data['x'].append(node.position[0])
+            epsilon_data['y'].append(node.position[1])
+            epsilon_data['id'].append(node.id)
+            epsilon_data['color'].append('blue')
+        
+        # Print sample positions for debugging
+        if len(simulation.epsilon_nodes) > 0:
+            print(f"Sample ε-node positions:")
+            for i in range(min(5, len(simulation.epsilon_nodes))):
+                print(f"  Node {simulation.epsilon_nodes[i].id}: {simulation.epsilon_nodes[i].position}")
+        
+        # Update σ-nodes
+        sigma_data = {
+            'x': [], 'y': [], 'id': [], 'color': []
+        }
+        for node in simulation.sigma_nodes:
+            sigma_data['x'].append(node.position[0])
+            sigma_data['y'].append(node.position[1])
+            sigma_data['id'].append(node.id)
+            sigma_data['color'].append('red')
+        
+        # Print σ-node positions
+        print(f"σ-node positions:")
+        for node in simulation.sigma_nodes:
+            print(f"  Node {node.id}: {node.position}")
+        
+        # Update θ-contacts
+        contact_data = {
+            'x': [], 'y': [], 'id': [], 'type': [], 'color': []
+        }
+        for contact in simulation.theta_contacts:
+            contact_data['x'].append(contact.position[0])
+            contact_data['y'].append(contact.position[1])
+            contact_data['id'].append(contact.id)
+            contact_data['type'].append(contact.type)
+            contact_data['color'].append('green')
+        
+        # Print sample contact positions
+        if len(simulation.theta_contacts) > 0:
+            print(f"Sample θ-contact positions:")
+            for i in range(min(5, len(simulation.theta_contacts))):
+                print(f"  Contact {simulation.theta_contacts[i].id}: {simulation.theta_contacts[i].position}")
+        
+        # Update data sources
+        epsilon_source.data = epsilon_data
+        sigma_source.data = sigma_data
+        contact_source.data = contact_data
+        
+        # Update info display
+        elapsed_time = simulation.current_time
+        hours = int(elapsed_time / 3600)
+        minutes = int((elapsed_time % 3600) / 60)
+        seconds = int(elapsed_time % 60)
+        
+        status = "running" if simulation.is_running else "stopped"
+        
+        info_text = f"""
+        <b>Simulation {status}</b><br>
+        Time: {hours:02d}:{minutes:02d}:{seconds:02d}<br>
+        Detections: {simulation.stats['detections']}<br>
+        Messages delivered: {simulation.stats['messages_delivered']}
+        """
+        info_div.text = info_text
+    
+    # Call update_data once to initialize
+    update_data()
+    
+    # Button callbacks
+    def start_simulation():
+        simulation.start()
+        update_data()
+        doc.add_periodic_callback(simulation_tick, 500)  # 500ms interval
+    
+    def stop_simulation():
+        simulation.stop()
+        update_data()
+        # Remove periodic callback if exists
+        for callback in list(doc.session_callbacks):
+            doc.remove_periodic_callback(callback)
+    
+    def simulation_tick():
+        if simulation.is_running:
+            simulation.tick()
+            update_data()
+        else:
+            # Remove callback if simulation is not running
+            for callback in list(doc.session_callbacks):
+                doc.remove_periodic_callback(callback)
+    
+    # Connect callbacks
+    start_button.on_click(start_simulation)
+    stop_button.on_click(stop_simulation)
+    
+    # Add to document (this is key - we add to the document passed to this function)
+    layout = row(plot, controls)
+    doc.add_root(layout)
+    doc.title = "Aquascan Marine Simulation"
 
 
 def main():
@@ -39,7 +225,7 @@ def main():
     
     # Start Bokeh server
     server = Server({'/': bokeh_app}, port=args.port, io_loop=IOLoop.current(),
-                   allow_websocket_origin=["localhost:5006"])
+                   allow_websocket_origin=[f"localhost:{args.port}"])
     
     server.start()
     

@@ -145,11 +145,14 @@ class AquascanVisualization:
         
         # Add to document
         doc = curdoc()
-        doc.add_root(row(self.plot, controls))
+        layout = row(self.plot, controls)
+        doc.add_root(layout)
         doc.title = "Aquascan Marine Simulation"
         
         # Add periodic callback for simulation ticks
         self.callback_id = None
+        
+        return layout
     
     def start_simulation(self):
         """Start the simulation and visualization updates."""
