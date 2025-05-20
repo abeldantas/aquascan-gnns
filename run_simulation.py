@@ -146,7 +146,7 @@ def bokeh_app(doc):
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         </div>
         """,
-        width=400, height=300  # Reduced height to make room for controls below
+        width=400
     )
     
     # Control buttons
