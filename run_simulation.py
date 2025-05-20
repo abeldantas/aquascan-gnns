@@ -160,14 +160,18 @@ def bokeh_app(doc):
     speed_x16 = Button(label="x16", button_type="default", width=50)
     speed_x32 = Button(label="x32", button_type="default", width=50)
     speed_x64 = Button(label="x64", button_type="default", width=50)
-    
+    speed_x128 = Button(label="x128", button_type="default", width=50)
+    speed_x256 = Button(label="x256", button_type="default", width=50)
+
     # Control headers
     control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(15, 0, 5, 0))
     speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(15, 0, 5, 0))
     
     # Group the controls in sections with padding
     simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
-    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, speed_x32, speed_x64, margin=(0, 0, 15, 0))
+    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, 
+                    speed_x32, speed_x64, speed_x128, speed_x256, 
+                    margin=(0, 0, 15, 0))
     
     # Create the main control column with proper spacing and fixed height
     controls = column(
@@ -339,6 +343,8 @@ def bokeh_app(doc):
         speed_x16.button_type = "success" if current_speed == 16 else "default"
         speed_x32.button_type = "success" if current_speed == 32 else "default"
         speed_x64.button_type = "success" if current_speed == 64 else "default"
+        speed_x128.button_type = "success" if current_speed == 128 else "default"
+        speed_x256.button_type = "success" if current_speed == 256 else "default"
 
     def set_simulation_speed(speed):
         """Set the simulation speed and update the UI."""
@@ -378,6 +384,12 @@ def bokeh_app(doc):
     
     def set_speed_x64():
         set_simulation_speed(64)
+
+    def set_speed_x128():
+        set_simulation_speed(128)
+
+    def set_speed_x256():
+        set_simulation_speed(256)
     
     def simulation_tick():
         if simulation.is_running:
@@ -396,6 +408,8 @@ def bokeh_app(doc):
     speed_x16.on_click(set_speed_x16)
     speed_x32.on_click(set_speed_x32)
     speed_x64.on_click(set_speed_x64)
+    speed_x128.on_click(set_speed_x128)
+    speed_x256.on_click(set_speed_x256)
     
     # Set initial speed button style using the instance property
     update_speed_buttons(simulation.speed_factor)
