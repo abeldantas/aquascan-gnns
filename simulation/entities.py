@@ -264,42 +264,26 @@ class ThetaContact(BaseEntity):
     def _update_sinusoidal(self, current_time, ocean_area):
         """Update position using sinusoidal motion model with substeps for smoother movement."""
         # Use substeps for smoother motion
-        # IMPORTANT: Don't multiply by SIMULATION_SPEED here since that's already
-        # accounted for in the tick() method's time advancement
         sub_time_step = TIME_STEP / MOTION_SUBSTEPS
         
         for _ in range(MOTION_SUBSTEPS):
-            # Calculate forward direction
-            forward_x = self.speed * np.cos(self.base_direction) * sub_time_step
-            forward_y = self.speed * np.sin(self.base_direction) * sub_time_step
-            
-            # Calculate sinusoidal component perpendicular to forward direction
+            # Calculate phase for sinusoidal motion
             phase_time = current_time % self.period
             phase_factor = (phase_time / self.period) * 2 * np.pi + self.phase
             sine_factor = np.sin(phase_factor)
             
-            # Perpendicular direction
-            perp_x = -forward_y
-            perp_y = forward_x
+            # Calculate the direction offset from the base direction
+            direction_offset = sine_factor * np.pi/6  # Max 30 degree deviation
+            current_direction = self.base_direction + direction_offset
             
-            # Normalize perpendicular vector
-            perp_len = np.sqrt(perp_x**2 + perp_y**2)
-            if perp_len > 0:
-                perp_x /= perp_len
-                perp_y /= perp_len
+            # Calculate movement vector with the intended speed
+            dx = self.speed * np.cos(current_direction) * sub_time_step
+            dy = self.speed * np.sin(current_direction) * sub_time_step
             
-            # Apply sinusoidal offset - but scale down for gentler curves
-            lateral_offset = self.amplitude * sine_factor * sub_time_step
-            
-            # Final movement
-            dx = forward_x + perp_x * lateral_offset
-            dy = forward_y + perp_y * lateral_offset
-            
-            # Apply movement (regardless of bounds - allow migration beyond deployment area)
+            # Apply movement
             new_position = self.position + np.array([dx, dy])
             
             # Modified boundary checking to allow wider migration paths
-            # Only change direction if they get very far outside the deployment area
             x, y = new_position
             extended_x_min, extended_x_max = -15, ocean_area.length + 15
             extended_y_min, extended_y_max = ocean_area.shore_distance - 15, ocean_area.shore_distance + ocean_area.width + 15
@@ -312,7 +296,7 @@ class ThetaContact(BaseEntity):
                 # Calculate angle to center
                 angle_to_center = np.arctan2(center_y - y, center_x - x)
                 
-                # Gradually adjust direction (blend current with target)
+                # Gradually adjust direction
                 angle_diff = ((angle_to_center - self.base_direction + np.pi) % (2 * np.pi)) - np.pi
                 self.base_direction += angle_diff * 0.1  # Gradual adjustment
                 self.base_direction %= 2 * np.pi
@@ -320,7 +304,7 @@ class ThetaContact(BaseEntity):
                 # Reset phase for smoother transition
                 self.phase = np.random.uniform(0, 2 * np.pi)
             
-            # Always apply movement
+            # Update position
             self.position = new_position
             
             # Update current_time for next substep
