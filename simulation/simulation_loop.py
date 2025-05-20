@@ -17,7 +17,7 @@ import time
 from config.simulation_config import (
     TIME_STEP, SIMULATION_DURATION, MARINE_ENTITIES,
     ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE,
-    SIMULATION_SPEED
+    SIMULATION_SPEED as DEFAULT_SIMULATION_SPEED
 )
 from simulation.ocean_area import OceanArea
 from simulation.entities import EpsilonNode, SigmaNode, ThetaContact
@@ -49,6 +49,7 @@ class AquascanSimulation:
         self.current_time = 0
         self.is_running = False
         self.visualization_callback = None
+        self.speed_factor = DEFAULT_SIMULATION_SPEED  # Store speed as instance property
         
         # Statistics
         self.stats = {
@@ -120,6 +121,7 @@ class AquascanSimulation:
         # Initialize θ-contacts
         for contact in self.theta_contacts:
             contact.creation_time = self.current_time
+            contact.last_update_time = self.current_time
     
     def start(self):
         """Start the simulation."""
@@ -134,17 +136,14 @@ class AquascanSimulation:
         Args:
             speed_factor (int): Speed multiplier (1 = realtime, etc.)
         """
-        # Import within method to avoid circular imports
-        from config.simulation_config import SIMULATION_SPEED as CONFIG_SPEED
+        # Store speed factor as a property of the simulation object
+        self.speed_factor = speed_factor
         
-        # Update the global variable in the module where it's defined
+        # Update the simulation speed in the configuration module (not sure if this is needed)
+        # Since the simulation speed there is supopsed to be a default value constant
         import sys
         config_module = sys.modules['config.simulation_config']
         setattr(config_module, 'SIMULATION_SPEED', speed_factor)
-        
-        # Also update the local reference
-        global SIMULATION_SPEED
-        SIMULATION_SPEED = speed_factor
         
         print(f"Simulation speed set to {speed_factor}x")
         
@@ -200,8 +199,8 @@ class AquascanSimulation:
         if self.visualization_callback:
             self.visualization_callback(self)
         
-        # Increment time - apply simulation speed factor
-        self.current_time += TIME_STEP * SIMULATION_SPEED
+        # Increment time - apply simulation speed factor from the instance property
+        self.current_time += TIME_STEP * self.speed_factor
         
         return True
     
@@ -243,6 +242,7 @@ class AquascanSimulation:
         """
         return {
             "time": self.current_time,
+            "speed": self.speed_factor,  # Include speed in the snapshot
             "epsilon_nodes": [(node.id, node.position.copy()) for node in self.epsilon_nodes],
             "sigma_nodes": [(node.id, node.position.copy()) for node in self.sigma_nodes],
             "theta_contacts": [(contact.id, contact.type, contact.position.copy()) 

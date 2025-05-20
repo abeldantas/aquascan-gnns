@@ -308,7 +308,7 @@ def bokeh_app(doc):
         <b>Status:</b> {status.capitalize()}<br>
         <b>Real Time:</b> {real_hours:02d}:{real_minutes:02d}:{real_seconds:02d}<br>
         <b>Simulation Time:</b> Day {sim_days+1}, {sim_hours:02d}:{sim_minutes:02d}:{sim_seconds:02d}<br>
-        <b>Time Scale:</b> {SIMULATION_SPEED}x real-time<br>
+        <b>Time Scale:</b> {simulation.speed_factor}x real-time<br>
         <b>Total Detections:</b> {simulation.stats['detections']}<br>
         <b>Currently Detected:</b> {currently_detected} contacts<br>
         <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
@@ -339,12 +339,14 @@ def bokeh_app(doc):
         speed_x16.button_type = "success" if current_speed == 16 else "default"
         speed_x32.button_type = "success" if current_speed == 32 else "default"
         speed_x64.button_type = "success" if current_speed == 64 else "default"
-    
+
     def set_simulation_speed(speed):
         """Set the simulation speed and update the UI."""
         simulation.set_speed(speed)
         update_speed_buttons(speed)
         update_data()
+        
+    update_speed_buttons(simulation.speed_factor)
     
     # Button callbacks
     def start_simulation():
@@ -395,9 +397,8 @@ def bokeh_app(doc):
     speed_x32.on_click(set_speed_x32)
     speed_x64.on_click(set_speed_x64)
     
-    # Set initial speed button style
-    from config.simulation_config import SIMULATION_SPEED
-    update_speed_buttons(SIMULATION_SPEED)
+    # Set initial speed button style using the instance property
+    update_speed_buttons(simulation.speed_factor)
     
     # Add to document (this is key - we add to the document passed to this function)
     layout = row(plot, controls)
