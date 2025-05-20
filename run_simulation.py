@@ -146,42 +146,40 @@ def bokeh_app(doc):
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         </div>
         """,
-        width=400, height=400  # Increased height for more content
+        width=400, height=300  # Reduced height to make room for controls below
     )
     
     # Control buttons
-    start_button = Button(label="Start Simulation", button_type="success")
-    stop_button = Button(label="Stop Simulation", button_type="danger")
+    start_button = Button(label="Start Simulation", button_type="success", width=150)
+    stop_button = Button(label="Stop Simulation", button_type="danger", width=150)
     
     # Speed control buttons
     speed_realtime = Button(label="Realtime", button_type="default", width=75)
     speed_x4 = Button(label="x4", button_type="default", width=50)
     speed_x8 = Button(label="x8", button_type="default", width=50)
     speed_x16 = Button(label="x16", button_type="default", width=50)
+    speed_x32 = Button(label="x32", button_type="default", width=50)
+    speed_x64 = Button(label="x64", button_type="default", width=50)
     
-    # Update the currently selected speed button
-    def update_speed_buttons(current_speed):
-        speed_realtime.button_type = "success" if current_speed == 1 else "default"
-        speed_x4.button_type = "success" if current_speed == 4 else "default"
-        speed_x8.button_type = "success" if current_speed == 8 else "default"
-        speed_x16.button_type = "success" if current_speed == 16 else "default"
-    
-    # Layout
+    # Control headers
     control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(15, 0, 5, 0))
     speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(15, 0, 5, 0))
     
     # Group the controls in sections with padding
     simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
-    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, margin=(0, 0, 15, 0))
+    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, speed_x32, speed_x64, margin=(0, 0, 15, 0))
     
-    # Create the main control column with proper spacing
+    # Create the main control column with proper spacing and fixed height
     controls = column(
         info_div,
+        Div(height=20),  # Add spacing
         control_header,
         simulation_buttons,
+        Div(height=10),  # Add spacing
         speed_header,
         speed_buttons,
-        sizing_mode="stretch_width"
+        sizing_mode="stretch_width",
+        height=600  # Fixed height to prevent overlap
     )
     
     # Update data function
@@ -331,52 +329,59 @@ def bokeh_app(doc):
     # Call update_data once to initialize
     update_data()
     
+    # Update the currently selected speed button
+    def update_speed_buttons(current_speed):
+        """Update the visual state of speed buttons and the simulation speed."""
+        # Update button styles
+        speed_realtime.button_type = "success" if current_speed == 1 else "default"
+        speed_x4.button_type = "success" if current_speed == 4 else "default"
+        speed_x8.button_type = "success" if current_speed == 8 else "default"
+        speed_x16.button_type = "success" if current_speed == 16 else "default"
+        speed_x32.button_type = "success" if current_speed == 32 else "default"
+        speed_x64.button_type = "success" if current_speed == 64 else "default"
+    
+    def set_simulation_speed(speed):
+        """Set the simulation speed and update the UI."""
+        simulation.set_speed(speed)
+        update_speed_buttons(speed)
+        update_data()
+    
     # Button callbacks
     def start_simulation():
         simulation.start()
-        simulation.start_real_time = time.time()  # Track when the simulation started
+        simulation.start_real_time = time.time()
         update_data()
-        # Increase the update frequency for more fluid animation (30+ FPS)
         doc.add_periodic_callback(simulation_tick, 30)  # ~33 FPS
     
     def stop_simulation():
         simulation.stop()
         update_data()
-        # Remove periodic callback if exists
         for callback in list(doc.session_callbacks):
             doc.remove_periodic_callback(callback)
     
     def set_speed_realtime():
-        simulation.set_speed(1)  # Realtime
-        update_speed_buttons(1)
-        update_data()
-        
+        set_simulation_speed(1)
+    
     def set_speed_x4():
-        simulation.set_speed(4)  # 4x speed
-        update_speed_buttons(4)
-        update_data()
-        
+        set_simulation_speed(4)
+    
     def set_speed_x8():
-        simulation.set_speed(8)  # 8x speed
-        update_speed_buttons(8)
-        update_data()
-        
+        set_simulation_speed(8)
+    
     def set_speed_x16():
-        simulation.set_speed(16)  # 16x speed
-        update_speed_buttons(16)
-        update_data()
+        set_simulation_speed(16)
+    
+    def set_speed_x32():
+        set_simulation_speed(32)
+    
+    def set_speed_x64():
+        set_simulation_speed(64)
     
     def simulation_tick():
         if simulation.is_running:
-            # Apply simulation speed - advance time faster than the visualization updates
-            # Get the current simulation speed from config
-            from config.simulation_config import SIMULATION_SPEED
-            
-            # Check if we need to update at this tick (for very low speeds)
             simulation.tick()
             update_data()
         else:
-            # Remove callback if simulation is not running
             for callback in list(doc.session_callbacks):
                 doc.remove_periodic_callback(callback)
     
@@ -387,6 +392,8 @@ def bokeh_app(doc):
     speed_x4.on_click(set_speed_x4)
     speed_x8.on_click(set_speed_x8)
     speed_x16.on_click(set_speed_x16)
+    speed_x32.on_click(set_speed_x32)
+    speed_x64.on_click(set_speed_x64)
     
     # Set initial speed button style
     from config.simulation_config import SIMULATION_SPEED
