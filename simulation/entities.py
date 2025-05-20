@@ -190,6 +190,7 @@ class ThetaContact(BaseEntity):
         self.species_name = MARINE_ENTITIES[species_type]["scientific_name"]
         self.motion_model = MARINE_ENTITIES[species_type]["motion_model"]
         self.volume = MARINE_ENTITIES[species_type]["typical_volume"]
+        self.last_update_time = 0  # Initialize last_update_time
         
         # Motion parameters
         species_config = MARINE_ENTITIES[species_type]
@@ -212,17 +213,24 @@ class ThetaContact(BaseEntity):
     
     def update(self, current_time, ocean_area):
         """Update marine entity position based on its motion model."""
+        # Calculate time delta
+        dt = current_time - self.last_update_time
+        if dt <= 0:
+            # Skip update if no time has passed
+            return
+            
         if self.motion_model == "brownian":
-            self._update_brownian(current_time, ocean_area)
+            self._update_brownian(current_time, dt, ocean_area)
         elif self.motion_model == "sinusoidal":
-            self._update_sinusoidal(current_time, ocean_area)
+            self._update_sinusoidal(current_time, dt, ocean_area)
+            
+        # Update last update time
+        self.last_update_time = current_time
     
-    def _update_brownian(self, current_time, ocean_area):
+    def _update_brownian(self, current_time, dt, ocean_area):
         """Update position using Brownian motion model with substeps for smoother movement."""
         # Use substeps for smoother motion
-        # IMPORTANT: Don't multiply by SIMULATION_SPEED here since that's already
-        # accounted for in the tick() method's time advancement
-        sub_time_step = TIME_STEP / MOTION_SUBSTEPS
+        sub_time_step = dt / MOTION_SUBSTEPS
         
         for _ in range(MOTION_SUBSTEPS):
             # Randomly change direction with some probability
@@ -261,14 +269,20 @@ class ThetaContact(BaseEntity):
             # Always apply movement regardless of bounds (allow them to leave deployment area)
             self.position = new_position
     
-    def _update_sinusoidal(self, current_time, ocean_area):
+    def _update_sinusoidal(self, current_time, dt, ocean_area):
         """Update position using sinusoidal motion model with substeps for smoother movement."""
         # Use substeps for smoother motion
-        sub_time_step = TIME_STEP / MOTION_SUBSTEPS
+        sub_time_step = dt / MOTION_SUBSTEPS
         
-        for _ in range(MOTION_SUBSTEPS):
+        # Starting time for this update (for consistent phase calculation)
+        step_time = current_time - dt
+        
+        for i in range(MOTION_SUBSTEPS):
+            # Calculate current time for this substep
+            substep_time = step_time + (i + 1) * sub_time_step
+            
             # Calculate phase for sinusoidal motion
-            phase_time = current_time % self.period
+            phase_time = substep_time % self.period
             phase_factor = (phase_time / self.period) * 2 * np.pi + self.phase
             sine_factor = np.sin(phase_factor)
             
@@ -306,6 +320,3 @@ class ThetaContact(BaseEntity):
             
             # Update position
             self.position = new_position
-            
-            # Update current_time for next substep
-            current_time += sub_time_step
