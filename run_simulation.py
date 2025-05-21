@@ -148,25 +148,33 @@ def bokeh_app(doc):
         line_color='#73c2fb', line_width=0.5, alpha=0.5, line_dash='dashed'
     )
     
-    # Info panel
+    # Info panel with cleaner CSS for spacing
     info_div = Div(
         text=f"""
-        <h3>Simulation Details</h3>
-        <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
-        <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
-        <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
-        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
-        <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
-        <b>Status:</b> Ready
-        
-        <h4 style="margin-top: 30px;">Entity Types:</h4>
-        <ul style="padding-left: 20px; margin-top: 5px;">
-          <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
-          <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
-        </ul>
-        
-        <h4 style="margin-top: 30px;">Marine Species:</h4>
-        <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <h3 style="margin-bottom: 10px;">Simulation Details</h3>
+                <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
+                <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
+                <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
+                <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
+                <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
+                <b>Status:</b> Ready
+            </div>
+            
+            <div>
+                <h4 style="margin-bottom: 8px;">Entity Types:</h4>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                  <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
+                  <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 style="margin-bottom: 8px;">Marine Species:</h4>
+                <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 0;">
+                </div>
+            </div>
         </div>
         """,
         width=400
@@ -186,29 +194,64 @@ def bokeh_app(doc):
     speed_x128 = Button(label="x128", button_type="default", width=50)
     speed_x256 = Button(label="x256", button_type="default", width=50)
 
-    # Control headers
-    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(40, 0, 10, 0))
-    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(40, 0, 10, 0))
+    # Import Spacer for better layout management
+    from bokeh.models import Spacer
     
-    # Group the controls in sections with padding
-    simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
-    speed_buttons_row1 = row(speed_realtime, speed_x4, speed_x8, speed_x16, 
-                    speed_x32, margin=(0, 0, 15, 0))
-    speed_buttons_row2 = row(speed_x64, speed_x128, speed_x256, 
-                    margin=(0, 0, 15, 0))
-    speed_buttons = column(speed_buttons_row1, Div(height=15), speed_buttons_row2)
+    # Control headers with proper styling
+    control_header = Div(
+        text="<h4 style='margin-bottom: 12px;'>Simulation Controls:</h4>",
+        margin=(0, 0, 0, 0)
+    )
     
-    # Create the main control column with proper spacing and fixed height
-    controls = column(
-        info_div,
-        Div(height=50),  # Increased spacing
+    speed_header = Div(
+        text="<h4 style='margin-bottom: 12px;'>Simulation Speed:</h4>",
+        margin=(0, 0, 0, 0)
+    )
+    
+    # Group the control buttons with proper spacing
+    simulation_buttons = row(
+        start_button, 
+        stop_button, 
+        spacing=10  # Use spacing parameter instead of margins
+    )
+    
+    # Create the speed button rows with proper spacing
+    speed_buttons_row1 = row(
+        speed_realtime, speed_x4, speed_x8, speed_x16, speed_x32,
+        spacing=5  # Consistent spacing between buttons
+    )
+    
+    speed_buttons_row2 = row(
+        speed_x64, speed_x128, speed_x256,
+        spacing=5  # Consistent spacing between buttons
+    )
+    
+    # Organize the sections using proper vertical layout with spacers
+    controls_section = column(
         control_header,
         simulation_buttons,
-        Div(height=40),  # Increased spacing
-        speed_header,
-        speed_buttons,
         sizing_mode="stretch_width",
-        height=700  # Increased height to accommodate more spacing
+        spacing=5  # Proper spacing between elements
+    )
+    
+    speed_section = column(
+        speed_header,
+        speed_buttons_row1,
+        Spacer(height=10),  # Proper spacer between rows
+        speed_buttons_row2,
+        sizing_mode="stretch_width",
+        spacing=5  # Proper spacing between elements
+    )
+    
+    # Create the main control column with proper layout and spacing
+    controls = column(
+        info_div,
+        Spacer(height=30),  # Spacer instead of Div for proper spacing
+        controls_section,
+        Spacer(height=30),  # Spacer for section separation
+        speed_section,
+        sizing_mode="stretch_width",
+        spacing=10  # Overall section spacing
     )
     
     # Update data function
@@ -364,33 +407,42 @@ def bokeh_app(doc):
         
         contacts_list_html += "</ul>"
         
+        # Apply the same flex layout to the dynamic info text
         info_text = f"""
-        <h3>Simulation Details</h3>
-        <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
-        <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
-        <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
-        <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
-        <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
-        <b>Status:</b> {status.capitalize()}<br>
-        <b>Real Time:</b> {real_hours:02d}:{real_minutes:02d}:{real_seconds:02d}<br>
-        <b>Simulation Time:</b> Day {sim_days+1}, {sim_hours:02d}:{sim_minutes:02d}:{sim_seconds:02d}<br>
-        <b>Time Scale:</b> {simulation.speed_factor}x real-time<br>
-        <b>Total Detections:</b> {simulation.stats['detections']}<br>
-        <b>Currently Detected:</b> {currently_detected} contacts<br>
-        <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}<br>
-        <b>Topology Algo:</b> Delaunay+Voronoi recalculation<br>
-        <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
-        <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
-        
-        <h4 style="margin-top: 30px;">Entity Types:</h4>
-        <ul style="padding-left: 20px; margin-top: 5px;">
-          <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
-          <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
-        </ul>
-        
-        <h4 style="margin-top: 30px;">Marine Species:</h4>
-        <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
-        {contacts_list_html}
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div>
+                <h3 style="margin-bottom: 10px;">Simulation Details</h3>
+                <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
+                <b>Distance from Shore:</b> {SHORE_DISTANCE}km to {SHORE_DISTANCE + AREA_WIDTH}km<br>
+                <b>Sensor Resolution:</b> {simulation.ocean_area.resolution}km<br>
+                <b>Nodes:</b> {len(simulation.epsilon_nodes)} ε-nodes (blue), {len(simulation.sigma_nodes)} σ-nodes (red)<br>
+                <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
+                <b>Status:</b> {status.capitalize()}<br>
+                <b>Real Time:</b> {real_hours:02d}:{real_minutes:02d}:{real_seconds:02d}<br>
+                <b>Simulation Time:</b> Day {sim_days+1}, {sim_hours:02d}:{sim_minutes:02d}:{sim_seconds:02d}<br>
+                <b>Time Scale:</b> {simulation.speed_factor}x real-time<br>
+                <b>Total Detections:</b> {simulation.stats['detections']}<br>
+                <b>Currently Detected:</b> {currently_detected} contacts<br>
+                <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}<br>
+                <b>Topology Algo:</b> Delaunay+Voronoi recalculation<br>
+                <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
+                <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
+            </div>
+            
+            <div>
+                <h4 style="margin-bottom: 8px;">Entity Types:</h4>
+                <ul style="padding-left: 20px; margin-top: 0;">
+                  <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
+                  <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 style="margin-bottom: 8px;">Marine Species:</h4>
+                <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 0;">
+                {contacts_list_html}
+                </div>
+            </div>
         </div>
         """
         info_div.text = info_text
