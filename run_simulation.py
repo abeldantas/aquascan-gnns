@@ -88,6 +88,11 @@ def bokeh_app(doc):
         'x0': [], 'y0': [], 'x1': [], 'y1': [], 'id0': [], 'id1': []
     })
     
+    # Add contact connections source
+    contact_connections_source = ColumnDataSource({
+        'x0': [], 'y0': [], 'x1': [], 'y1': []
+    })
+    
     # Create main plot
     plot = figure(
         width=1200, height=800,  # Increased size to fill more of the browser window
@@ -201,6 +206,13 @@ def bokeh_app(doc):
         x0='x0', y0='y0', x1='x1', y1='y1',
         source=intermittent_connections_source,
         line_color='#73c2fb', line_width=0.5, alpha=0.5, line_dash='dashed'
+    )
+    
+    # Add connections between detected contacts and epsilon nodes
+    plot.segment(
+        x0='x0', y0='y0', x1='x1', y1='y1',
+        source=contact_connections_source,
+        line_color='#800080', line_width=1.5, alpha=0.8
     )
     
     # Info panel with cleaner CSS for spacing
@@ -422,6 +434,30 @@ def bokeh_app(doc):
         permanent_connections_source.data = permanent_connections_data
         intermittent_connections_source.data = intermittent_connections_data
         
+        # Update connections between detected contacts and epsilon nodes
+        contact_connections_data = {
+            'x0': [], 'y0': [], 'x1': [], 'y1': []
+        }
+
+        for contact in simulation.theta_contacts:
+            for node in simulation.epsilon_nodes:
+                distance = np.linalg.norm(node.position - contact.position)
+                if distance <= detection_radius_km:
+                    contact_connections_data['x0'].append(node.position[0])
+                    contact_connections_data['y0'].append(node.position[1])
+                    contact_connections_data['x1'].append(contact.position[0])
+                    contact_connections_data['y1'].append(contact.position[1])
+
+        # Update contact connections source
+        contact_connections_source.data = contact_connections_data
+
+        # Add contact connections (purple lines)
+        plot.segment(
+            x0='x0', y0='y0', x1='x1', y1='y1',
+            source=contact_connections_source,
+            line_color='#800080', line_width=1.5, alpha=0.8
+        )
+    
         # Update current direction indicator
         if len(simulation.epsilon_nodes) > 0:
             # Get a sample current vector from the center of the area
