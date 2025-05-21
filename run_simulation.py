@@ -159,13 +159,13 @@ def bokeh_app(doc):
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> Ready
         
-        <h4 style="margin-top: 25px;">Entity Types:</h4>
+        <h4 style="margin-top: 30px;">Entity Types:</h4>
         <ul style="padding-left: 20px; margin-top: 5px;">
           <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
           <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
         </ul>
         
-        <h4 style="margin-top: 25px;">Marine Species:</h4>
+        <h4 style="margin-top: 30px;">Marine Species:</h4>
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         </div>
         """,
@@ -187,28 +187,28 @@ def bokeh_app(doc):
     speed_x256 = Button(label="x256", button_type="default", width=50)
 
     # Control headers
-    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(30, 0, 5, 0))
-    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(30, 0, 5, 0))
+    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(40, 0, 10, 0))
+    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(40, 0, 10, 0))
     
     # Group the controls in sections with padding
     simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
     speed_buttons_row1 = row(speed_realtime, speed_x4, speed_x8, speed_x16, 
                     speed_x32, margin=(0, 0, 15, 0))
     speed_buttons_row2 = row(speed_x64, speed_x128, speed_x256, 
-                    margin=(0, 0, 0, 0))
-    speed_buttons = column(speed_buttons_row1, Div(height=10), speed_buttons_row2)
+                    margin=(0, 0, 15, 0))
+    speed_buttons = column(speed_buttons_row1, Div(height=15), speed_buttons_row2)
     
     # Create the main control column with proper spacing and fixed height
     controls = column(
         info_div,
-        Div(height=40),  # Increased spacing
+        Div(height=50),  # Increased spacing
         control_header,
         simulation_buttons,
-        Div(height=30),  # Increased spacing
+        Div(height=40),  # Increased spacing
         speed_header,
         speed_buttons,
         sizing_mode="stretch_width",
-        height=650  # Increased height to accommodate more spacing
+        height=700  # Increased height to accommodate more spacing
     )
     
     # Update data function
@@ -382,13 +382,13 @@ def bokeh_app(doc):
         <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
         <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
         
-        <h4 style="margin-top: 25px;">Entity Types:</h4>
+        <h4 style="margin-top: 30px;">Entity Types:</h4>
         <ul style="padding-left: 20px; margin-top: 5px;">
           <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
           <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
         </ul>
         
-        <h4 style="margin-top: 25px;">Marine Species:</h4>
+        <h4 style="margin-top: 30px;">Marine Species:</h4>
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         {contacts_list_html}
         </div>
