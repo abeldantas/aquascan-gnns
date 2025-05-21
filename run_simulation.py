@@ -51,6 +51,14 @@ def bokeh_app(doc):
         'x': [], 'y': [], 'id': [], 'type': [], 'label': []
     })
     
+    # Add connection data sources
+    permanent_connections_source = ColumnDataSource({
+        'x0': [], 'y0': [], 'x1': [], 'y1': [], 'id0': [], 'id1': []
+    })
+    intermittent_connections_source = ColumnDataSource({
+        'x0': [], 'y0': [], 'x1': [], 'y1': [], 'id0': [], 'id1': []
+    })
+    
     # Create main plot
     plot = figure(
         width=1200, height=800,  # Increased size to fill more of the browser window
@@ -123,6 +131,23 @@ def bokeh_app(doc):
         width=AREA_LENGTH, height=AREA_WIDTH,
         fill_color=None, line_color='#999999', line_width=2, line_dash='dashed',
         alpha=0.5
+    )
+    
+    # Add connection lines between epsilon nodes
+    # Permanent connections (solid blue lines)
+    plot.segment(
+        x0='x0', y0='y0', x1='x1', y1='y1',
+        source=permanent_connections_source,
+        line_color='#3288bd', line_width=0.5, alpha=0.7,
+        legend_label="Permanent connections (<5km)"
+    )
+    
+    # Intermittent connections (dashed light blue lines)
+    plot.segment(
+        x0='x0', y0='y0', x1='x1', y1='y1',
+        source=intermittent_connections_source,
+        line_color='#73c2fb', line_width=0.5, alpha=0.5, line_dash='dashed',
+        legend_label="Intermittent connections (5-10km)"
     )
     
     # Info panel
@@ -216,6 +241,41 @@ def bokeh_app(doc):
             'x': [], 'y': [], 'id': [], 'type': [], 'label': []
         }
         
+        # Update connections between ε-nodes
+        permanent_connections_data = {
+            'x0': [], 'y0': [], 'x1': [], 'y1': [], 'id0': [], 'id1': []
+        }
+        intermittent_connections_data = {
+            'x0': [], 'y0': [], 'x1': [], 'y1': [], 'id0': [], 'id1': []
+        }
+        
+        # Create a dictionary to map node IDs to positions for faster lookup
+        epsilon_positions = {node.id: node.position for node in simulation.epsilon_nodes}
+        
+        # Process permanent connections
+        for id1, id2 in simulation.epsilon_connections['permanent']:
+            if id1 in epsilon_positions and id2 in epsilon_positions:
+                pos1 = epsilon_positions[id1]
+                pos2 = epsilon_positions[id2]
+                permanent_connections_data['x0'].append(pos1[0])
+                permanent_connections_data['y0'].append(pos1[1])
+                permanent_connections_data['x1'].append(pos2[0])
+                permanent_connections_data['y1'].append(pos2[1])
+                permanent_connections_data['id0'].append(id1)
+                permanent_connections_data['id1'].append(id2)
+        
+        # Process intermittent connections
+        for id1, id2 in simulation.epsilon_connections['intermittent']:
+            if id1 in epsilon_positions and id2 in epsilon_positions:
+                pos1 = epsilon_positions[id1]
+                pos2 = epsilon_positions[id2]
+                intermittent_connections_data['x0'].append(pos1[0])
+                intermittent_connections_data['y0'].append(pos1[1])
+                intermittent_connections_data['x1'].append(pos2[0])
+                intermittent_connections_data['y1'].append(pos2[1])
+                intermittent_connections_data['id0'].append(id1)
+                intermittent_connections_data['id1'].append(id2)
+        
         # For each contact, check if it's within detection range of any epsilon node
         detection_radius_km = simulation.epsilon_nodes[0].detection_radius if simulation.epsilon_nodes else 0.2
         
@@ -256,6 +316,8 @@ def bokeh_app(doc):
         sigma_source.data = sigma_data
         detected_contact_source.data = detected_data
         undetected_contact_source.data = undetected_data
+        permanent_connections_source.data = permanent_connections_data
+        intermittent_connections_source.data = intermittent_connections_data
         
         # Calculate real elapsed time
         real_elapsed_time = time.time() - simulation.start_real_time if hasattr(simulation, 'start_real_time') else 0
@@ -315,7 +377,10 @@ def bokeh_app(doc):
         <b>Time Scale:</b> {simulation.speed_factor}x real-time<br>
         <b>Total Detections:</b> {simulation.stats['detections']}<br>
         <b>Currently Detected:</b> {currently_detected} contacts<br>
-        <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}
+        <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}<br>
+        <b>Topology Algo:</b> Delaunay+Voronoi recalculation<br>
+        <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
+        <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
         
         <h4>Entity Types:</h4>
         <ul style="padding-left: 20px; margin-top: 5px;">

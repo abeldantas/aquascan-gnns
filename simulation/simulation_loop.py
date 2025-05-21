@@ -22,6 +22,7 @@ from config.simulation_config import (
 from simulation.ocean_area import OceanArea
 from simulation.entities import EpsilonNode, SigmaNode, ThetaContact
 from simulation.communication import ReliableProximityRelay, DistributedObservationBuffer
+from simulation.network_topology import DelaunayVoronoiTopology
 
 
 class AquascanSimulation:
@@ -45,6 +46,22 @@ class AquascanSimulation:
         self.rpr = ReliableProximityRelay(self.ocean_area)
         self.dob = DistributedObservationBuffer()
         
+        # Initialize network topology
+        self.network_topology = DelaunayVoronoiTopology(
+            min_connections=3,
+            max_connections=5,
+            permanent_range=5.0,
+            intermittent_range=10.0,
+            intermittent_update_interval=7200  # 2 hours
+        )
+        
+        # Initialize node connections
+        self.epsilon_connections = {
+            'permanent': set(),   # Set of (node1_id, node2_id) for connections < 5km
+            'intermittent': set() # Set of (node1_id, node2_id) for connections 5-10km
+        }
+        self.last_intermittent_update = 0  # Track last update time for intermittent connections
+        
         # Simulation state
         self.current_time = 0
         self.is_running = False
@@ -55,7 +72,9 @@ class AquascanSimulation:
         self.stats = {
             "detections": 0,
             "messages_sent": 0,
-            "messages_delivered": 0
+            "messages_delivered": 0,
+            "permanent_connections": 0,
+            "intermittent_connections": 0
         }
     
     def _create_epsilon_nodes(self):
@@ -109,7 +128,9 @@ class AquascanSimulation:
         self.stats = {
             "detections": 0,
             "messages_sent": 0,
-            "messages_delivered": 0
+            "messages_delivered": 0,
+            "permanent_connections": 0,
+            "intermittent_connections": 0
         }
         
         # Initialize nodes with starting time
@@ -122,6 +143,16 @@ class AquascanSimulation:
         for contact in self.theta_contacts:
             contact.creation_time = self.current_time
             contact.last_update_time = self.current_time
+            
+        # Initialize network connections
+        self.network_topology.initialize(self.epsilon_nodes, self.current_time)
+        updated_connections = self.network_topology.get_connections()
+        self.epsilon_connections['permanent'] = updated_connections['permanent']
+        self.epsilon_connections['intermittent'] = updated_connections['intermittent']
+        
+        # Update connection stats
+        self.stats["permanent_connections"] = len(self.epsilon_connections['permanent'])
+        self.stats["intermittent_connections"] = len(self.epsilon_connections['intermittent'])
     
     def start(self):
         """Start the simulation."""
@@ -177,25 +208,30 @@ class AquascanSimulation:
         # 3. Update θ-contact positions
         for contact in self.theta_contacts:
             contact.update(self.current_time, self.ocean_area)
+            
+        # 4. Update ε-node connections
+        self._update_epsilon_connections()
         
-        # 4. Detect θ-contacts
+        # 5. Detect θ-contacts
         for epsilon_node in self.epsilon_nodes:
             for contact in self.theta_contacts:
                 if epsilon_node.detect_contact(contact, self.current_time):
                     self.stats["detections"] += 1
         
-        # 5. Process communications
+        # 6. Process communications
         self.rpr.process_communications(
             self.epsilon_nodes, self.sigma_nodes, self.current_time
         )
         
-        # 6. Collect data from σ-nodes
+        # 7. Collect data from σ-nodes
         self.dob.collect_from_sigma_nodes(self.sigma_nodes)
         
-        # 7. Update statistics
+        # 8. Update statistics
         self.stats["messages_delivered"] = len(self.rpr.delivered_messages)
+        self.stats["permanent_connections"] = len(self.epsilon_connections['permanent'])
+        self.stats["intermittent_connections"] = len(self.epsilon_connections['intermittent'])
         
-        # 8. Update visualization if callback is registered
+        # 9. Update visualization if callback is registered
         if self.visualization_callback:
             self.visualization_callback(self)
         
@@ -233,6 +269,20 @@ class AquascanSimulation:
         
         return self.stats
     
+    def _update_epsilon_connections(self):
+        """
+        Update connections between epsilon nodes using the configured network topology.
+        Uses Delaunay triangulation for initial network and Voronoi diagrams for updates.
+        """
+        # Update connections using the network topology manager
+        updated_connections = self.network_topology.update_connections(
+            self.epsilon_nodes, self.current_time
+        )
+        
+        # Update our local connection sets
+        self.epsilon_connections['permanent'] = updated_connections['permanent']
+        self.epsilon_connections['intermittent'] = updated_connections['intermittent']
+    
     def get_state_snapshot(self):
         """
         Get a snapshot of the current simulation state.
@@ -247,5 +297,9 @@ class AquascanSimulation:
             "sigma_nodes": [(node.id, node.position.copy()) for node in self.sigma_nodes],
             "theta_contacts": [(contact.id, contact.type, contact.position.copy()) 
                                for contact in self.theta_contacts],
+            "epsilon_connections": {
+                "permanent": list(self.epsilon_connections['permanent']),
+                "intermittent": list(self.epsilon_connections['intermittent'])
+            },
             "stats": self.stats.copy()
         }
