@@ -82,18 +82,23 @@ def create_graph_from_window(file_path: str, start_tick: int, context_len: int, 
         epsilon_features = {}
         theta_features = {}
         
+        def _xy(arr):
+            """Return N×2 float32 array from a structured node slice."""
+            return np.column_stack((arr['x'].astype(np.float32),
+                                    arr['y'].astype(np.float32)))
+
         # For each unique epsilon node, calculate its average position across the context window
         for node_id in epsilon_ids:
             node_data = epsilon_nodes[epsilon_nodes['gid'] == node_id]
             
             # Average position over the context window
-            avg_pos = np.mean(node_data[['x', 'y']], axis=0)
+            avg_pos = _xy(node_data).mean(axis=0)
             
             # Calculate velocity (if we have at least 2 points)
             if len(node_data) >= 2:
                 sorted_data = np.sort(node_data, order='t')
-                first_pos = sorted_data[0][['x', 'y']]
-                last_pos = sorted_data[-1][['x', 'y']]
+                first_pos = _xy(sorted_data[:1])[0]
+                last_pos  = _xy(sorted_data[-1:])[0]
                 velocity = (last_pos - first_pos) / (len(sorted_data) - 1)
             else:
                 velocity = np.zeros(2)
@@ -107,13 +112,13 @@ def create_graph_from_window(file_path: str, start_tick: int, context_len: int, 
             node_data = theta_nodes[theta_nodes['gid'] == node_id]
             
             # Average position over the context window
-            avg_pos = np.mean(node_data[['x', 'y']], axis=0)
+            avg_pos = _xy(node_data).mean(axis=0)
             
             # Calculate velocity (if we have at least 2 points)
             if len(node_data) >= 2:
                 sorted_data = np.sort(node_data, order='t')
-                first_pos = sorted_data[0][['x', 'y']]
-                last_pos = sorted_data[-1][['x', 'y']]
+                first_pos = _xy(sorted_data[:1])[0]
+                last_pos  = _xy(sorted_data[-1:])[0]
                 velocity = (last_pos - first_pos) / (len(sorted_data) - 1)
             else:
                 velocity = np.zeros(2)
@@ -124,20 +129,26 @@ def create_graph_from_window(file_path: str, start_tick: int, context_len: int, 
         
         # Create node tensors
         if epsilon_features:
-            epsilon_x = torch.tensor([epsilon_features[gid] for gid in sorted(epsilon_features.keys())], dtype=torch.float)
-            graph['epsilon'].x = epsilon_x
-            graph['epsilon'].node_ids = torch.tensor(sorted(epsilon_features.keys()), dtype=torch.long)
+            sorted_eps = sorted(epsilon_features.keys())
+            eps_arr    = np.array([epsilon_features[g] for g in sorted_eps], dtype=np.float32)
+            graph['epsilon'].x   = torch.from_numpy(eps_arr)
+            graph['epsilon'].node_ids = torch.tensor(sorted_eps, dtype=torch.long)
+            graph['epsilon'].gid = torch.tensor(sorted_eps, dtype=torch.int32)
         else:
             graph['epsilon'].x = torch.zeros((0, 4), dtype=torch.float)
             graph['epsilon'].node_ids = torch.zeros(0, dtype=torch.long)
-        
+            graph['epsilon'].gid = torch.zeros(0, dtype=torch.int32)
+
         if theta_features:
-            theta_x = torch.tensor([theta_features[gid] for gid in sorted(theta_features.keys())], dtype=torch.float)
-            graph['theta'].x = theta_x
-            graph['theta'].node_ids = torch.tensor(sorted(theta_features.keys()), dtype=torch.long)
+            sorted_th = sorted(theta_features.keys())
+            th_arr    = np.array([theta_features[g] for g in sorted_th], dtype=np.float32)
+            graph['theta'].x   = torch.from_numpy(th_arr)
+            graph['theta'].node_ids = torch.tensor(sorted_th, dtype=torch.long)
+            graph['theta'].gid = torch.tensor(sorted_th, dtype=torch.int32)
         else:
             graph['theta'].x = torch.zeros((0, 4), dtype=torch.float)
             graph['theta'].node_ids = torch.zeros(0, dtype=torch.long)
+            graph['theta'].gid = torch.zeros(0, dtype=torch.int32)
         
         # Create edge indices for the context window
         # Communication edges (epsilon -> epsilon)
@@ -198,6 +209,9 @@ def create_graph_from_window(file_path: str, start_tick: int, context_len: int, 
         # Add metadata to the graph
         graph.context_len = context_len
         graph.horizon_len = horizon_len
+
+        graph.start_tick  = torch.tensor([start_tick], dtype=torch.int32)
+        graph.raw_file_id = torch.tensor([int(Path(file_path).stem)], dtype=torch.int32)  # assumes filename like '7.h5'
         
         return graph
 
