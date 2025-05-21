@@ -45,7 +45,7 @@ MARINE_ENTITIES = {
     "european_seabass": {
         "scientific_name": "Dicentrarchus labrax",
         "motion_model": "brownian",
-        "count": 3,
+        "count": 5,
         "typical_volume": 0.01,  # cubic meters
         "speed_range": (0.16, 0.19),  # m/s (approx 14-16 km/day)
         "turn_frequency": 0.002,  # probability of changing direction per second (significantly reduced)
@@ -53,7 +53,7 @@ MARINE_ENTITIES = {
     "atlantic_horse_mackerel": {
         "scientific_name": "Trachurus trachurus",
         "motion_model": "brownian",
-        "count": 3,
+        "count": 5,
         "typical_volume": 0.007,  # cubic meters
         "speed_range": (0.19, 0.23),  # m/s (approx 16-20 km/day)
         "turn_frequency": 0.002,  # probability of changing direction per second (significantly reduced)
