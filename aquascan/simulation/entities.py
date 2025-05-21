@@ -39,6 +39,8 @@ class BaseEntity:
             position (tuple): Initial (x, y) position in km
         """
         self.id = entity_id
+        # Numerical ID for efficient storage in HDF5
+        self.gid = int(entity_id.split('-')[-1])
         self.position = np.array(position, dtype=float)
         self.creation_time = 0
     

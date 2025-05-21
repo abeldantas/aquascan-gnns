@@ -1,0 +1,11 @@
+sim:
+  ticks: 600
+  seed: 42
+  resolution_km: 1.0
+  area:
+    length_km: 30
+    width_km: 16
+    shore_offset_km: 6
+bokeh:
+  port: 5006
+  show: false

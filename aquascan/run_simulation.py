@@ -5,37 +5,80 @@ This script initializes and runs the Aquascan simulation with visualization.
 It sets up the Bokeh server and starts the simulation with the configured parameters.
 """
 
+from typing import Optional
+from pathlib import Path
 import argparse
 import os
 import sys
 import time
-from typing import Optional
-
-# -----------------------------------------------------------------------------
-# For module compatibility, we no longer need to modify sys.path
-# -----------------------------------------------------------------------------
-# Path setup is not needed when running as a module
+from omegaconf import OmegaConf
 
 # -----------------------------------------------------------------------------
 # Public, test‑friendly API
 # -----------------------------------------------------------------------------
 
-def run(ticks: int = 600, *, seed: int = 42) -> "AquascanSimulation":
-    """Run **one** simulation headlessly for *ticks* steps.
+def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Optional[Path] = None) -> "AquascanSimulation":
+    """Run **one** simulation for *ticks* steps.
+
+    Args:
+        ticks: Number of simulation steps to run
+        seed: Random seed for reproducibility
+        visual: Whether to run in visual mode (Bokeh)
+        out_path: If provided, exports simulation snapshots to this HDF5 file
 
     Returns the *AquascanSimulation* instance so that unit tests can inspect
-    internal state (e.g. node counts, stats).  **No** Bokeh code is imported –
+    internal state (e.g. node counts, stats).  If visual=False, no Bokeh code is imported –
     safe for PyTest and multiprocessing workers.
     """
-    from .simulation.simulation_loop import AquascanSimulation
+    from aquascan.simulation.simulation_loop import AquascanSimulation
 
     sim = AquascanSimulation(seed=seed)
     sim.initialize()
 
-    for _ in range(ticks):
-        sim.tick()
-
-    return sim
+    if visual:
+        # Visual mode would be handled by the main() function
+        return sim
+    else:
+        # Headless mode - run for specified number of ticks
+        sim.start()  # Start the simulation
+        
+        # If out_path is provided, export snapshots to HDF5
+        if out_path:
+            from aquascan.io.writer import SnapshotWriter
+            from pathlib import Path
+            
+            # Convert out_path to Path if it's a string
+            if isinstance(out_path, str):
+                out_path = Path(out_path)
+                
+            # Create metadata for the run
+            meta = {
+                "seed": seed,
+                "ticks": ticks,
+                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "epsilon_count": len(sim.epsilon_nodes),
+                "theta_count": len(sim.theta_contacts),
+                "resolution": sim.ocean_area.resolution,
+            }
+            
+            # Create the writer
+            out = SnapshotWriter(out_path, meta=meta, est_ticks=ticks)
+            
+            # Export each tick
+            for t in range(ticks):
+                sim.tick()
+                nodes, edges = sim.export_snapshot(t)
+                out.append(t, nodes, edges)
+                
+            # Close the writer
+            out.close()
+        else:
+            # Just run the simulation without exporting
+            for _ in range(ticks):
+                sim.tick()
+                
+        sim.stop()  # Stop the simulation
+        return sim
 
 
 
@@ -66,7 +109,7 @@ def bokeh_app(doc):
         ColumnDataSource, Button, Div, Slider, Select, Arrow, VeeHead, Label,
         CheckboxGroup, Spacer,
     )
-    from .config import simulation_config
+    from aquascan.config import simulation_config
 
     motion_checkbox = CheckboxGroup(labels=["Enable Drift & Currents"], active=[0])
 
@@ -695,51 +738,91 @@ def bokeh_app(doc):
 
 
 # -----------------------------------------------------------------------------
-# CLI – combines both modes
+# CLI – combines both modes with OmegaConf support
 # -----------------------------------------------------------------------------
 
 def main(argv: Optional[list[str]] = None) -> None:
     parser = argparse.ArgumentParser(description="Run Aquascan Marine Simulation")
 
+    # Config file
+    parser.add_argument('--cfg', default='configs/base.yml', 
+                       help='Configuration file path')
+    
     # Mode flags
     parser.add_argument("--headless", action="store_true",
                         help="Run without Bokeh (CI / batch)")
 
     # Common params
-    parser.add_argument("--ticks", type=int, default=600,
+    parser.add_argument("--ticks", type=int,
                         help="Number of ticks to simulate (headless only)")
-    parser.add_argument("--seed", type=int, default=42,
+    parser.add_argument("--seed", type=int,
                         help="Random seed")
+    parser.add_argument("--out", type=str,
+                        help="Output path for HDF5 snapshot file (headless only)")
 
     # Visual‑only params
-    parser.add_argument("--port", type=int, default=5006,
+    parser.add_argument("--port", type=int,
                         help="Port for Bokeh server (visual mode)")
     parser.add_argument("--show", action="store_true",
                         help="Open browser automatically (visual mode)")
 
     args = parser.parse_args(argv)
+    
+    # Load configuration from file
+    try:
+        cfg = OmegaConf.load(args.cfg)
+    except Exception as e:
+        print(f"Error loading configuration file: {e}")
+        cfg = OmegaConf.create({
+            'sim': {'ticks': 600, 'seed': 42},
+            'bokeh': {'port': 5006, 'show': False}
+        })
+    
+    # Override with command line arguments
+    if args.ticks is not None:
+        cfg.sim.ticks = args.ticks
+    if args.seed is not None:
+        cfg.sim.seed = args.seed
+    if args.port is not None:
+        cfg.bokeh.port = args.port
+    if args.show:
+        cfg.bokeh.show = True
+    
+    # Use headless mode based on command line flag
+    visual = not args.headless
 
-    if args.headless:
+    if not visual:
         # ------------------------------------------------------------------
         # Headless fast‑path – returns immediately when done
         # ------------------------------------------------------------------
-        print(f"[Aquascan] Headless run: ticks={args.ticks}, seed={args.seed}")
+        print(f"[Aquascan] Headless run: ticks={cfg.sim.ticks}, seed={cfg.sim.seed}")
         start = time.time()
-        run(ticks=args.ticks, seed=args.seed)
+        
+        # Process output path if provided
+        out_path = None
+        if args.out:
+            out_path = Path(args.out)
+            # Create directory if it doesn't exist
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            print(f"[Aquascan] Will export snapshot to {out_path}")
+        
+        # Run simulation
+        run(ticks=cfg.sim.ticks, seed=cfg.sim.seed, visual=False, out_path=out_path)
+        
         print(f"[Aquascan] Completed in {time.time() - start:.2f}s")
         return
 
     # ----------------------------------------------------------------------
     # Interactive Bokeh server (legacy behaviour)
     # ----------------------------------------------------------------------
-    print(f"[Aquascan] Starting Bokeh server on port {args.port}")
+    print(f"[Aquascan] Starting Bokeh server on port {cfg.bokeh.port}")
     print("Press Ctrl+C to stop")
 
-    server = Server({"/": bokeh_app}, port=args.port, io_loop=IOLoop.current(),
-                    allow_websocket_origin=[f"localhost:{args.port}"])
+    server = Server({"/": bokeh_app}, port=cfg.bokeh.port, io_loop=IOLoop.current(),
+                   allow_websocket_origin=[f"localhost:{cfg.bokeh.port}"])
     server.start()
 
-    if args.show:
+    if cfg.bokeh.show:
         server.io_loop.add_callback(server.show, "/")
 
     server.io_loop.start()

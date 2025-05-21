@@ -13,6 +13,8 @@ Responsibilities:
 
 import numpy as np
 import time
+import logging
+from typing import Tuple, List, Dict, Set, Optional
 
 from aquascan.config.simulation_config import (
     TIME_STEP, SIMULATION_DURATION, MARINE_ENTITIES,
@@ -23,6 +25,16 @@ from aquascan.simulation.ocean_area import OceanArea
 from aquascan.simulation.entities import EpsilonNode, SigmaNode, ThetaContact
 from aquascan.simulation.communication import ReliableProximityRelay, DistributedObservationBuffer
 from aquascan.simulation.network_topology import DelaunayVoronoiTopology
+
+# Node and edge data types for HDF5 export
+NODE_DTYPE = np.dtype([
+    ("t", "i4"), ("gid", "i4"), ("type", "u1"),
+    ("x", "f4"), ("y", "f4"), ("feat", "f4", (4,))
+])
+
+EDGE_DTYPE = np.dtype([
+    ("t", "i4"), ("src", "i4"), ("dst", "i4"), ("rel", "u1")
+])
 
 
 class AquascanSimulation:
@@ -70,6 +82,9 @@ class AquascanSimulation:
         self.is_running = False
         self.visualization_callback = None
         self.speed_factor = DEFAULT_SIMULATION_SPEED  # Store speed as instance property
+        
+        # Track detections in the last tick for HDF5 export
+        self.detections_last_tick = set()  # Set of (epsilon_gid, theta_gid) tuples
         
         # Statistics
         self.stats = {
@@ -215,10 +230,15 @@ class AquascanSimulation:
         self._update_epsilon_connections()
         
         # 5. Detect θ-contacts
+        # Clear previous detections
+        self.detections_last_tick = set()
+        
         for epsilon_node in self.epsilon_nodes:
             for contact in self.theta_contacts:
                 if epsilon_node.detect_contact(contact, self.current_time):
                     self.stats["detections"] += 1
+                    # Store detection for HDF5 export
+                    self.detections_last_tick.add((epsilon_node.gid, contact.gid))
         
         # 6. Process communications
         self.rpr.process_communications(
@@ -305,3 +325,106 @@ class AquascanSimulation:
             },
             "stats": self.stats.copy()
         }
+        """
+        Export a snapshot of the current simulation state as structured arrays.
+        
+        Creates arrays compatible with the HDF5 schema for persistent storage.
+        
+        Args:
+            t: Current tick number
+            
+        Returns:
+            Tuple of (node_rows, edge_rows) as NumPy structured arrays
+        """
+        # Create node rows for epsilon nodes and theta contacts
+        node_rows = []
+        
+        # Add epsilon nodes (type=0)
+        for n in self.epsilon_nodes:
+            # Example features: battery level, temperature, salinity, oxygen
+            # In a real implementation, these would come from sensor readings
+            feats = np.array([
+                0.95,  # battery level (95%)
+                15.0,  # water temperature (15°C)
+                35.0,  # salinity (35 ppt)
+                8.0    # dissolved oxygen (8 mg/L)
+            ], dtype="f4")
+            
+            node_rows.append((t, n.gid, 0, n.position[0], n.position[1], feats))
+        
+        # Add theta contacts (type=1)
+        for c in self.theta_contacts:
+            # Theta contacts don't have the same sensor features as epsilon nodes
+            feats = np.zeros(4, dtype="f4")
+            node_rows.append((t, c.gid, 1, c.position[0], c.position[1], feats))
+        
+        # Create edge rows for connections and detections
+        edge_rows = []
+        
+        # Add permanent connections between epsilon nodes (rel=0)
+        for (id1, id2) in self.epsilon_connections["permanent"]:
+            # Convert string IDs to integer GIDs
+            gid1 = int(id1.split('-')[-1])
+            gid2 = int(id2.split('-')[-1])
+            edge_rows.append((t, gid1, gid2, 0))
+        
+        # Add detections between epsilon nodes and theta contacts (rel=1)
+        for (eps_gid, theta_gid) in self.detections_last_tick:
+            edge_rows.append((t, eps_gid, theta_gid, 1))
+        
+        return (
+            np.array(node_rows, dtype=NODE_DTYPE),
+            np.array(edge_rows, dtype=EDGE_DTYPE)
+        )
+    def export_snapshot(self, t: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Export a snapshot of the current simulation state as structured arrays.
+        
+        Creates arrays compatible with the HDF5 schema for persistent storage.
+        
+        Args:
+            t: Current tick number
+            
+        Returns:
+            Tuple of (node_rows, edge_rows) as NumPy structured arrays
+        """
+        # Create node rows for epsilon nodes and theta contacts
+        node_rows = []
+        
+        # Add epsilon nodes (type=0)
+        for n in self.epsilon_nodes:
+            # Example features: battery level, temperature, salinity, oxygen
+            # In a real implementation, these would come from sensor readings
+            feats = np.array([
+                0.95,  # battery level (95%)
+                15.0,  # water temperature (15°C)
+                35.0,  # salinity (35 ppt)
+                8.0    # dissolved oxygen (8 mg/L)
+            ], dtype="f4")
+            
+            node_rows.append((t, n.gid, 0, n.position[0], n.position[1], feats))
+        
+        # Add theta contacts (type=1)
+        for c in self.theta_contacts:
+            # Theta contacts don't have the same sensor features as epsilon nodes
+            feats = np.zeros(4, dtype="f4")
+            node_rows.append((t, c.gid, 1, c.position[0], c.position[1], feats))
+        
+        # Create edge rows for connections and detections
+        edge_rows = []
+        
+        # Add permanent connections between epsilon nodes (rel=0)
+        for (id1, id2) in self.epsilon_connections["permanent"]:
+            # Convert string IDs to integer GIDs
+            gid1 = int(id1.split('-')[-1])
+            gid2 = int(id2.split('-')[-1])
+            edge_rows.append((t, gid1, gid2, 0))
+        
+        # Add detections between epsilon nodes and theta contacts (rel=1)
+        for (eps_gid, theta_gid) in self.detections_last_tick:
+            edge_rows.append((t, eps_gid, theta_gid, 1))
+        
+        return (
+            np.array(node_rows, dtype=NODE_DTYPE),
+            np.array(edge_rows, dtype=EDGE_DTYPE)
+        )
