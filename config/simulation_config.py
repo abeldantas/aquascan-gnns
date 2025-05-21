@@ -75,9 +75,16 @@ CURRENT_VARIABILITY = 0.5  # Variability in current strength (increased from 0.1
 PERLIN_SCALE = 0.03  # Scale factor for Perlin noise (increased from 0.01 - smaller = smoother)
 PERLIN_OCTAVES = 3  # Number of octaves for Perlin noise (increased from 2)
 
+# Ocean Current Parameters - Time Cycling
+CURRENT_ANGLE_CYCLE_DAYS = 1.0  # Days per full cycle of current angle changes
+CURRENT_STRENGTH_CYCLE_DAYS = 0.5  # Days per full cycle of current strength changes
+CURRENT_PHASE_OFFSET = 0.25  # Phase offset between angle and strength cycles (0-1)
+
 # Epsilon Node Movement Parameters
 EPSILON_NOISE_FACTOR = 0.4  # Individual noise factor (as proportion of current strength)
 DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field (higher = more spatial variation)
+SECONDARY_NOISE_FACTOR = 0.3  # Secondary noise layer factor (as proportion of current strength)
+SECONDARY_NOISE_FREQUENCY = 0.1  # Frequency of secondary noise pattern
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates

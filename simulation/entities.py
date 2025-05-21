@@ -18,7 +18,8 @@ import noise
 from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
     MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
-    SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE
+    SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE,
+    SECONDARY_NOISE_FACTOR, SECONDARY_NOISE_FREQUENCY
 )
 
 
@@ -93,6 +94,35 @@ class EpsilonNode(BaseEntity):
         
         # Apply the distortion factor to the drift vector
         drift = drift * distortion_factor
+        
+        # Add secondary noise layer using a different noise pattern
+        # This creates a secondary movement pattern that's different for each epsilon
+        nx2 = self.position[0] / ocean_area.length * SECONDARY_NOISE_FREQUENCY * 10
+        ny2 = self.position[1] / ocean_area.width * SECONDARY_NOISE_FREQUENCY * 10
+        # Use node ID as a third dimension to ensure different patterns per node
+        nz2 = float(self.id.replace('e-', '')) * 0.1  
+        
+        # Generate noise-based secondary vector (perpendicular to current)
+        sec_noise_val = noise.pnoise3(nx2, ny2, nz2, octaves=2) * 2 - 1  # Range -1 to 1
+        
+        # Create perpendicular vector to current
+        perp_x = -drift[1]
+        perp_y = drift[0]
+        
+        # Normalize and scale
+        if (perp_x != 0 or perp_y != 0):
+            perp_mag = np.sqrt(perp_x**2 + perp_y**2)
+            perp_x /= perp_mag
+            perp_y /= perp_mag
+            
+            # Scale by drift magnitude and noise factor
+            secondary_drift = np.array([
+                perp_x * np.linalg.norm(drift) * SECONDARY_NOISE_FACTOR * sec_noise_val,
+                perp_y * np.linalg.norm(drift) * SECONDARY_NOISE_FACTOR * sec_noise_val
+            ])
+            
+            # Add to drift vector
+            drift = drift + secondary_drift
         
         # Add individual noise to movement (with magnitude based on EPSILON_NOISE_FACTOR)
         noise_magnitude = np.linalg.norm(drift) * EPSILON_NOISE_FACTOR

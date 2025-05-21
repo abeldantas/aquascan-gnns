@@ -119,7 +119,7 @@ def bokeh_app(doc):
     
     # Add current info text
     current_info = Label(
-        x=AREA_LENGTH / 2, y=SHORE_DISTANCE - 2.8,
+        x=AREA_LENGTH / 2, y=SHORE_DISTANCE - 2.2,  # Moved up from -2.4
         text="Current: N/A",
         text_font_size="12pt",
         text_align="center",

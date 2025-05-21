@@ -16,7 +16,8 @@ from utils.hex_grid import get_deployment_positions
 from config.simulation_config import (
     AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE,
     get_resolution, MAX_COMM_RANGE, OPTIMAL_COMM_RANGE,
-    PERLIN_SCALE, PERLIN_OCTAVES, CURRENT_STRENGTH, CURRENT_VARIABILITY
+    PERLIN_SCALE, PERLIN_OCTAVES, CURRENT_STRENGTH, CURRENT_VARIABILITY,
+    CURRENT_ANGLE_CYCLE_DAYS, CURRENT_STRENGTH_CYCLE_DAYS, CURRENT_PHASE_OFFSET
 )
 
 
@@ -106,21 +107,36 @@ class OceanArea:
         nx = position[0] / self.length * PERLIN_SCALE
         ny = position[1] / self.width * PERLIN_SCALE
         
-        # Use different time scales for different components
-        # This creates more varied patterns over time
-        nt_angle = time / (86400 * 5) * PERLIN_SCALE  # 5-day cycle for angle
-        nt_strength = time / (86400 * 3) * PERLIN_SCALE  # 3-day cycle for strength
+        # Use different time scales and patterns for different components
+        # This creates more varied and realistic patterns over time
+        seconds_per_day = 86400
         
-        # Calculate Perlin noise value for angle
-        angle_noise = noise.pnoise3(nx, ny, nt_angle, octaves=PERLIN_OCTAVES)
+        # Time component for angle - uses specified cycle in days
+        nt_angle = time / (seconds_per_day * CURRENT_ANGLE_CYCLE_DAYS) 
         
-        # Enhance the angle variation to avoid directional bias
-        # Allow full 360° rotation over time
-        angle = angle_noise * 2 * np.pi
+        # Time component for strength - different cycle than angle
+        nt_strength = time / (seconds_per_day * CURRENT_STRENGTH_CYCLE_DAYS) + CURRENT_PHASE_OFFSET
         
-        # Calculate Perlin noise value for strength
-        strength_noise = noise.pnoise3(nx + 10.0, ny + 10.0, nt_strength, octaves=PERLIN_OCTAVES)
-        strength = CURRENT_STRENGTH * (1.0 + strength_noise * CURRENT_VARIABILITY)
+        # More complex angle variation 
+        # Combine two cycles with different frequencies
+        angle_base = np.sin(2 * np.pi * nt_angle) * 2 * np.pi
+        angle_mod = np.sin(2 * np.pi * nt_angle * 2.7) * np.pi / 2  # Secondary frequency
+        
+        # Calculate Perlin noise value for position-based variation
+        pos_angle_mod = noise.pnoise2(nx, ny, octaves=PERLIN_OCTAVES) * np.pi / 2
+        
+        # Combine time cycles with position variation
+        angle = angle_base + angle_mod + pos_angle_mod
+        
+        # Calculate more complex strength variation
+        # Combine absolute sine wave with Perlin noise
+        strength_time_factor = abs(np.sin(2 * np.pi * nt_strength)) * 0.8 + 0.2  # Range 0.2-1.0
+        
+        # Position-based strength variation 
+        strength_pos_mod = noise.pnoise2(nx + 10.0, ny + 10.0, octaves=PERLIN_OCTAVES)
+        
+        # Combine time and position variations
+        strength = CURRENT_STRENGTH * strength_time_factor * (1.0 + strength_pos_mod * CURRENT_VARIABILITY)
         
         # Calculate current vector
         dx = strength * np.cos(angle)
