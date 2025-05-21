@@ -471,9 +471,20 @@ def bokeh_app(doc):
         
         status = "running" if simulation.is_running else "stopped"
         
-        # Build contacts list HTML
-        contacts_list_html = "<ul style='padding-left: 20px; margin-top: 0;'>"
-        
+        # Build contacts table HTML
+        contacts_table_html = """
+        <table style='border-collapse: collapse; width: 100%;'>
+            <thead>
+                <tr>
+                    <th style='border: 1px solid #ddd; padding: 8px;'>ID</th>
+                    <th style='border: 1px solid #ddd; padding: 8px;'>English Name</th>
+                    <th style='border: 1px solid #ddd; padding: 8px;'>Latin Name</th>
+                    <th style='border: 1px solid #ddd; padding: 8px;'>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+
         # Sort contacts by ID to ensure consistent ordering
         sorted_contacts = sorted(simulation.theta_contacts, key=lambda x: x.id)
         
@@ -482,19 +493,26 @@ def bokeh_app(doc):
             is_detected = any(contact.id == id for id in detected_data['id'])
             status_color = "#00cc00" if is_detected else "#999999"
             status_text = "Detected" if is_detected else "Not detected"
-            
-            # Extract contact number from ID
-            contact_num = contact.id.split('-')[1]
-            
-            contacts_list_html += f"""
-            <li>
-              <span style="color: {status_color};">●</span> <b>θ-{contact_num}</b>: {contact.species_name} ({status_text})
-            </li>
+
+            # Extract English and Latin names
+            english_name = contact.type.replace('_', ' ').title()
+            latin_name = contact.species_name
+
+            contacts_table_html += f"""
+            <tr>
+                <td style='border: 1px solid #ddd; padding: 8px;'>{contact.id}</td>
+                <td style='border: 1px solid #ddd; padding: 8px;'>{english_name}</td>
+                <td style='border: 1px solid #ddd; padding: 8px;'>{latin_name}</td>
+                <td style='border: 1px solid #ddd; padding: 8px; color: {status_color};'>{status_text}</td>
+            </tr>
             """
-        
-        contacts_list_html += "</ul>"
-        
-        # Apply the same flex layout to the dynamic info text
+
+        contacts_table_html += """
+            </tbody>
+        </table>
+        """
+
+        # Replace the old contacts list with the new table
         info_text = f"""
         <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
@@ -509,26 +527,10 @@ def bokeh_app(doc):
                 <b>Simulation Time:</b> Day {sim_days+1}, {sim_hours:02d}:{sim_minutes:02d}:{sim_seconds:02d}<br>
                 <b>Time Scale:</b> {simulation.speed_factor}x real-time<br>
                 <b>Total Detections:</b> {simulation.stats['detections']}<br>
-                <b>Currently Detected:</b> {currently_detected} contacts<br>
-                <b>Messages Delivered:</b> {simulation.stats['messages_delivered']}<br>
-                <b>Topology Algo:</b> Delaunay+Voronoi recalculation<br>
-                <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
-                <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
             </div>
-            
             <div>
-                <h4 style="margin-bottom: 8px;">Entity Types:</h4>
-                <ul style="padding-left: 20px; margin-top: 0;">
-                  <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
-                  <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
-                </ul>
-            </div>
-            
-            <div>
-                <h4 style="margin-bottom: 8px;">Marine Species:</h4>
-                <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 0;">
-                {contacts_list_html}
-                </div>
+                <h3 style="margin-bottom: 10px;">Marine Entities</h3>
+                {contacts_table_html}
             </div>
         </div>
         """
