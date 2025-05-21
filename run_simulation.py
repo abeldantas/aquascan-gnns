@@ -33,6 +33,11 @@ def bokeh_app(doc):
     from bokeh.layouts import column, row
     from bokeh.models import ColumnDataSource, Button, Div, Slider, Select, Arrow, VeeHead, Label
     
+    from bokeh.models import CheckboxGroup
+    from config import simulation_config
+
+    motion_checkbox = CheckboxGroup(labels=["Enable Drift & Currents"], active=[0])
+
     # Create simulation instance
     simulation = AquascanSimulation()
     simulation.initialize()
@@ -229,6 +234,9 @@ def bokeh_app(doc):
         """,
         width=400
     )
+
+    motion_checkbox.on_change("active", lambda attr, old, new: simulation_config.set_motion_toggles(0 in new))
+
     
     # Control buttons
     start_button = Button(label="Start Simulation", button_type="success", width=150)
@@ -296,6 +304,8 @@ def bokeh_app(doc):
     # Create the main control column with proper layout and spacing
     controls = column(
         info_div,
+        Spacer(height=5),
+        motion_checkbox,
         Spacer(height=5),
         controls_section,
         Spacer(height=5),

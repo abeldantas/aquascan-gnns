@@ -21,9 +21,10 @@ from config.simulation_config import (
     SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE,
     SECONDARY_NOISE_FACTOR, SECONDARY_NOISE_FREQUENCY,
     INDEPENDENT_DRIFT_STRENGTH, INDEPENDENT_DRIFT_PERSISTENCE,
-    ENABLE_OCEAN_CURRENTS, ENABLE_DISTORTION_FIELD, ENABLE_SECONDARY_NOISE,
-    ENABLE_INDEPENDENT_DRIFT, ENABLE_RANDOM_NOISE
+    ENABLE_DISTORTION_FIELD, ENABLE_SECONDARY_NOISE,
+    ENABLE_RANDOM_NOISE
 )
+from config import simulation_config
 
 
 class BaseEntity:
@@ -92,7 +93,7 @@ class EpsilonNode(BaseEntity):
             return
 
         # === LAYER 1: OCEAN CURRENT ===
-        if ENABLE_OCEAN_CURRENTS:
+        if simulation_config.ENABLE_OCEAN_CURRENTS:
             # Get current at this position
             current_vector = ocean_area.calculate_ocean_current(self.position, current_time)
 
@@ -144,7 +145,7 @@ class EpsilonNode(BaseEntity):
                 drift += secondary_drift
 
         # === LAYER 4: PERSISTENT INDEPENDENT MOVEMENT ===
-        if ENABLE_INDEPENDENT_DRIFT:
+        if simulation_config.ENABLE_INDEPENDENT_DRIFT:
             global_current = ocean_area.calculate_ocean_current(self.position, current_time)
             base_direction = np.arctan2(global_current[1], global_current[0])
             

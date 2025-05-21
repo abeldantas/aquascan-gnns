@@ -101,10 +101,8 @@ ENTITY_COLORS = {
 }
 
 # Toggle for enabling/disabling ocean currents and other sources of epsilon node movement
-ENABLE_OCEAN_CURRENTS = True
 ENABLE_DISTORTION_FIELD = False
 ENABLE_SECONDARY_NOISE = False
-ENABLE_INDEPENDENT_DRIFT = True
 ENABLE_RANDOM_NOISE = False
 
 def get_resolution():
@@ -139,3 +137,8 @@ if __name__ == "__main__":
     print(f"Marine entities: {get_entity_count()} total")
     print(f"Simulation duration: {SIMULATION_DURATION/3600:.1f} hours ({SIMULATION_DURATION/86400:.1f} days)")
     print(f"Time step: {TIME_STEP} seconds")
+
+def set_motion_toggles(enabled: bool):
+    global ENABLE_OCEAN_CURRENTS, ENABLE_INDEPENDENT_DRIFT
+    ENABLE_OCEAN_CURRENTS = enabled
+    ENABLE_INDEPENDENT_DRIFT = enabled
