@@ -151,7 +151,7 @@ def bokeh_app(doc):
     # Info panel with cleaner CSS for spacing
     info_div = Div(
         text=f"""
-        <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
                 <h3 style="margin-bottom: 10px;">Simulation Details</h3>
                 <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
@@ -237,7 +237,7 @@ def bokeh_app(doc):
     speed_section = column(
         speed_header,
         speed_buttons_row1,
-        Spacer(height=10),  # Proper spacer between rows
+        Spacer(height=5),  # Reduced spacer between rows
         speed_buttons_row2,
         sizing_mode="stretch_width",
         spacing=5  # Proper spacing between elements
@@ -246,9 +246,9 @@ def bokeh_app(doc):
     # Create the main control column with proper layout and spacing
     controls = column(
         info_div,
-        Spacer(height=30),  # Spacer instead of Div for proper spacing
+        Spacer(height=15),  # Reduced spacer
         controls_section,
-        Spacer(height=30),  # Spacer for section separation
+        Spacer(height=15),  # Reduced spacer for section separation
         speed_section,
         sizing_mode="stretch_width",
         spacing=10  # Overall section spacing
@@ -409,7 +409,7 @@ def bokeh_app(doc):
         
         # Apply the same flex layout to the dynamic info text
         info_text = f"""
-        <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
             <div>
                 <h3 style="margin-bottom: 10px;">Simulation Details</h3>
                 <b>Deployment Area:</b> {AREA_LENGTH}km × {AREA_WIDTH}km<br>
