@@ -70,10 +70,14 @@ MARINE_ENTITIES = {
 }
 
 # Environmental Parameters
-CURRENT_STRENGTH = 0.01  # Maximum current speed in m/s (reduced from 0.05)
-CURRENT_VARIABILITY = 0.15  # Variability in current strength (0-1)
-PERLIN_SCALE = 0.01  # Scale factor for Perlin noise (smaller = smoother)
-PERLIN_OCTAVES = 2  # Number of octaves for Perlin noise (reduced from 3)
+CURRENT_STRENGTH = 0.03  # Maximum current speed in m/s (increased from 0.01)
+CURRENT_VARIABILITY = 0.5  # Variability in current strength (increased from 0.15)
+PERLIN_SCALE = 0.03  # Scale factor for Perlin noise (increased from 0.01 - smaller = smoother)
+PERLIN_OCTAVES = 3  # Number of octaves for Perlin noise (increased from 2)
+
+# Epsilon Node Movement Parameters
+EPSILON_NOISE_FACTOR = 0.4  # Individual noise factor (as proportion of current strength)
+DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field (higher = more spatial variation)
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates

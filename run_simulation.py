@@ -31,11 +31,35 @@ def bokeh_app(doc):
     import numpy as np
     from bokeh.plotting import figure
     from bokeh.layouts import column, row
-    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select
+    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select, Arrow, NormalHead, Label
     
     # Create simulation instance
     simulation = AquascanSimulation()
     simulation.initialize()
+    
+    # Helper function for cardinal directions
+    def get_direction_name(angle_deg):
+        """Convert angle in degrees to cardinal direction name."""
+        # Normalize angle to 0-360 range
+        angle_deg = (angle_deg + 360) % 360
+        
+        # Map angle to cardinal direction
+        if 22.5 <= angle_deg < 67.5:
+            return "NE"
+        elif 67.5 <= angle_deg < 112.5:
+            return "E"
+        elif 112.5 <= angle_deg < 157.5:
+            return "SE"
+        elif 157.5 <= angle_deg < 202.5:
+            return "S"
+        elif 202.5 <= angle_deg < 247.5:
+            return "SW"
+        elif 247.5 <= angle_deg < 292.5:
+            return "W"
+        elif 292.5 <= angle_deg < 337.5:
+            return "NW"
+        else:
+            return "N"
     
     # Update data sources for visualization
     epsilon_source = ColumnDataSource({
@@ -76,6 +100,32 @@ def bokeh_app(doc):
     plot.border_fill_color = "#e6f3ff"  # Match the border with the background
     plot.xaxis.axis_label = "Distance along coastline (km)"
     plot.yaxis.axis_label = "Distance from shore (km) [Deployment area: 6-22 km]"
+    
+    # Add current direction indicator data source
+    current_indicator_source = ColumnDataSource({
+        'x': [AREA_LENGTH / 2], 
+        'y': [SHORE_DISTANCE - 2],  # Position below the deployment area
+        'angle': [0],  # Will be updated with current direction
+        'strength': [0],  # Will be updated with current strength
+    })
+    
+    # Add current direction arrow
+    arrow_head_size = 2.0
+    arrow = Arrow(end=NormalHead(size=arrow_head_size * 2, fill_color="#0066cc", line_color="#0066cc"),
+                 x_start='x', y_start='y', x_end='x', y_end='y',
+                 source=current_indicator_source,
+                 line_width=2, line_color="#0066cc")
+    plot.add_layout(arrow)
+    
+    # Add current info text
+    current_info = Label(
+        x=AREA_LENGTH / 2, y=SHORE_DISTANCE - 2.8,
+        text="Current: N/A",
+        text_font_size="12pt",
+        text_align="center",
+        text_baseline="top"
+    )
+    plot.add_layout(current_info)
     
     # Add glyphs - use basic circle for simplicity
     # ε-nodes (blue circles) - smaller size
@@ -361,6 +411,26 @@ def bokeh_app(doc):
         undetected_contact_source.data = undetected_data
         permanent_connections_source.data = permanent_connections_data
         intermittent_connections_source.data = intermittent_connections_data
+        
+        # Update current direction indicator
+        if len(simulation.epsilon_nodes) > 0:
+            # Get a sample current vector from the center of the area
+            center_pos = [AREA_LENGTH/2, SHORE_DISTANCE + AREA_WIDTH/2]
+            current_vector = simulation.ocean_area.calculate_ocean_current(center_pos, current_time)
+            
+            # Scale for visualization
+            scale_factor = 5.0  # Adjust for visibility
+            dx, dy = current_vector
+            strength = np.sqrt(dx**2 + dy**2)
+            direction = np.arctan2(dy, dx) * 180 / np.pi  # Convert to degrees
+            
+            # Update arrow vector
+            current_indicator_source.data['x_end'] = [current_indicator_source.data['x'][0] + dx * scale_factor]
+            current_indicator_source.data['y_end'] = [current_indicator_source.data['y'][0] + dy * scale_factor]
+            
+            # Update text
+            direction_name = get_direction_name(direction)
+            current_info.text = f"Current: {direction_name} ({strength*100:.1f} cm/s)"
         
         # Calculate real elapsed time
         real_elapsed_time = time.time() - simulation.start_real_time if hasattr(simulation, 'start_real_time') else 0

@@ -17,7 +17,7 @@ import numpy as np
 from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
     MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
-    SIMULATION_SPEED
+    SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE
 )
 
 
@@ -69,7 +69,7 @@ class EpsilonNode(BaseEntity):
         self.last_update_time = 0
     
     def update(self, current_time, ocean_area):
-        """Update ε-node position based on ocean currents."""
+        """Update ε-node position based on ocean currents with added randomness."""
         # Calculate time delta since last update
         dt = current_time - self.last_update_time
         if dt <= 0:
@@ -82,16 +82,26 @@ class EpsilonNode(BaseEntity):
         # Note: dt already includes SIMULATION_SPEED effects from the tick() method
         drift = np.array(current_vector) * dt * 0.001  # m/s to km/s
         
-        # Update position
-        self.position += drift
+        # Generate a distortion field based on position
+        # This creates spatially varied currents - nodes in different regions behave differently
+        nx = self.position[0] / ocean_area.length * DISTORTION_FIELD_SCALE * 10
+        ny = self.position[1] / ocean_area.width * DISTORTION_FIELD_SCALE * 10
         
-        # Ensure node stays within bounds
-        if not ocean_area.is_within_bounds(self.position):
-            # If outside bounds, move back inside
-            self.position[0] = np.clip(self.position[0], 0, ocean_area.length)
-            self.position[1] = np.clip(self.position[1], 
-                                       ocean_area.shore_distance, 
-                                       ocean_area.shore_distance + ocean_area.width)
+        # Use noise or a simpler approach for distortion
+        import noise  # Import here to ensure it's available
+        distortion_factor = 0.5 + noise.pnoise2(nx, ny, octaves=2)  # Range approximately 0-1
+        
+        # Apply the distortion factor to the drift vector
+        drift = drift * distortion_factor
+        
+        # Add individual noise to movement (with magnitude based on EPSILON_NOISE_FACTOR)
+        noise_magnitude = np.linalg.norm(drift) * EPSILON_NOISE_FACTOR
+        individual_noise = np.random.normal(0, noise_magnitude, 2)  # 2D random vector
+        
+        # Update position with drift and noise
+        self.position += drift + individual_noise
+        
+        # No boundary checking - allow nodes to move freely
         
         self.last_update_time = current_time
     

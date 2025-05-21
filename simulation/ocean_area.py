@@ -105,14 +105,21 @@ class OceanArea:
         # Get normalized coordinates for Perlin noise
         nx = position[0] / self.length * PERLIN_SCALE
         ny = position[1] / self.width * PERLIN_SCALE
-        nt = time / (86400 * 10) * PERLIN_SCALE  # Normalize time (10x slower time variation)
+        
+        # Use different time scales for different components
+        # This creates more varied patterns over time
+        nt_angle = time / (86400 * 5) * PERLIN_SCALE  # 5-day cycle for angle
+        nt_strength = time / (86400 * 3) * PERLIN_SCALE  # 3-day cycle for strength
         
         # Calculate Perlin noise value for angle
-        angle_noise = noise.pnoise3(nx, ny, nt, octaves=PERLIN_OCTAVES)
-        angle = angle_noise * 2 * np.pi  # Convert to angle in radians
+        angle_noise = noise.pnoise3(nx, ny, nt_angle, octaves=PERLIN_OCTAVES)
+        
+        # Enhance the angle variation to avoid directional bias
+        # Allow full 360° rotation over time
+        angle = angle_noise * 2 * np.pi
         
         # Calculate Perlin noise value for strength
-        strength_noise = noise.pnoise3(nx + 10.0, ny + 10.0, nt, octaves=PERLIN_OCTAVES)
+        strength_noise = noise.pnoise3(nx + 10.0, ny + 10.0, nt_strength, octaves=PERLIN_OCTAVES)
         strength = CURRENT_STRENGTH * (1.0 + strength_noise * CURRENT_VARIABILITY)
         
         # Calculate current vector
