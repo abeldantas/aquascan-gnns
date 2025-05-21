@@ -105,6 +105,9 @@ ENABLE_DISTORTION_FIELD = False
 ENABLE_SECONDARY_NOISE = False
 ENABLE_RANDOM_NOISE = False
 
+ENABLE_OCEAN_CURRENTS = True
+ENABLE_INDEPENDENT_DRIFT = True
+
 def get_resolution():
     """Return the current resolution value in kilometers."""
     return RESOLUTIONS[ACTIVE_RESOLUTION]
