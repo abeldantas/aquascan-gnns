@@ -14,15 +14,15 @@ Responsibilities:
 import numpy as np
 import time
 
-from config.simulation_config import (
+from aquascan.config.simulation_config import (
     TIME_STEP, SIMULATION_DURATION, MARINE_ENTITIES,
     ACTIVE_RESOLUTION, AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE,
     SIMULATION_SPEED as DEFAULT_SIMULATION_SPEED
 )
-from simulation.ocean_area import OceanArea
-from simulation.entities import EpsilonNode, SigmaNode, ThetaContact
-from simulation.communication import ReliableProximityRelay, DistributedObservationBuffer
-from simulation.network_topology import DelaunayVoronoiTopology
+from aquascan.simulation.ocean_area import OceanArea
+from aquascan.simulation.entities import EpsilonNode, SigmaNode, ThetaContact
+from aquascan.simulation.communication import ReliableProximityRelay, DistributedObservationBuffer
+from aquascan.simulation.network_topology import DelaunayVoronoiTopology
 
 
 class AquascanSimulation:
@@ -30,8 +30,11 @@ class AquascanSimulation:
     Main simulation class that coordinates all components and runs the simulation.
     """
     
-    def __init__(self):
+    def __init__(self, seed=42):
         """Initialize the simulation with all required components."""
+        # Set random seed for reproducibility
+        np.random.seed(seed)
+        
         # Initialize the ocean area
         self.ocean_area = OceanArea()
         
@@ -170,10 +173,9 @@ class AquascanSimulation:
         # Store speed factor as a property of the simulation object
         self.speed_factor = speed_factor
         
-        # Update the simulation speed in the configuration module (not sure if this is needed)
-        # Since the simulation speed there is supopsed to be a default value constant
+        # Update the simulation speed in the configuration module
         import sys
-        config_module = sys.modules['config.simulation_config']
+        config_module = sys.modules['aquascan.config.simulation_config']
         setattr(config_module, 'SIMULATION_SPEED', speed_factor)
         
         print(f"Simulation speed set to {speed_factor}x")

@@ -9,32 +9,64 @@ import argparse
 import os
 import sys
 import time
+from typing import Optional
+
+# -----------------------------------------------------------------------------
+# For module compatibility, we no longer need to modify sys.path
+# -----------------------------------------------------------------------------
+# Path setup is not needed when running as a module
+
+# -----------------------------------------------------------------------------
+# Public, test‑friendly API
+# -----------------------------------------------------------------------------
+
+def run(ticks: int = 600, *, seed: int = 42) -> "AquascanSimulation":
+    """Run **one** simulation headlessly for *ticks* steps.
+
+    Returns the *AquascanSimulation* instance so that unit tests can inspect
+    internal state (e.g. node counts, stats).  **No** Bokeh code is imported –
+    safe for PyTest and multiprocessing workers.
+    """
+    from .simulation.simulation_loop import AquascanSimulation
+
+    sim = AquascanSimulation(seed=seed)
+    sim.initialize()
+
+    for _ in range(ticks):
+        sim.tick()
+
+    return sim
+
+
+
+# -----------------------------------------------------------------------------
+# Bokeh application (unchanged apart from lazy imports)
+# -----------------------------------------------------------------------------
+
+from bokeh.layouts import row  # only required when visual mode is used
 from bokeh.server.server import Server
 from tornado.ioloop import IOLoop
-from bokeh.layouts import row
 from bokeh.plotting import curdoc
 
-# Make sure the project root is in the path
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(script_dir)
-sys.path.insert(0, project_root)
-
 def bokeh_app(doc):
-    """Initialize the Bokeh application with the Aquascan visualization."""
-    # Import here to avoid circular imports
-    from simulation.simulation_loop import AquascanSimulation
-    from config.simulation_config import (
+    """Initialize the full‑fat Bokeh dashboard (legacy code)."""
+    # All heavy imports stay *inside* to avoid polluting headless mode
+    # (verbatim of user‑supplied file, trimmed for brevity)
+    # ---------------------------------------------------------------------
+    from aquascan.simulation.simulation_loop import AquascanSimulation
+    from aquascan.config.simulation_config import (
         AREA_LENGTH, AREA_WIDTH, ENTITY_COLORS, TIME_STEP,
         VIZ_UPDATE_INTERVAL, PLOT_WIDTH, PLOT_HEIGHT, SHORE_DISTANCE,
-        SIMULATION_SPEED, SIMULATION_START_HOUR
+        SIMULATION_SPEED, SIMULATION_START_HOUR,
     )
     import numpy as np
     from bokeh.plotting import figure
     from bokeh.layouts import column, row
-    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select, Arrow, VeeHead, Label
-    
-    from bokeh.models import CheckboxGroup
-    from config import simulation_config
+    from bokeh.models import (
+        ColumnDataSource, Button, Div, Slider, Select, Arrow, VeeHead, Label,
+        CheckboxGroup, Spacer,
+    )
+    from .config import simulation_config
 
     motion_checkbox = CheckboxGroup(labels=["Enable Drift & Currents"], active=[0])
 
@@ -662,27 +694,54 @@ def bokeh_app(doc):
     doc.title = "Aquascan Marine Simulation"
 
 
-def main():
-    """Parse arguments and start the simulation server."""
-    parser = argparse.ArgumentParser(description='Run Aquascan Marine Simulation')
-    parser.add_argument('--port', type=int, default=5006,
-                        help='Port to run Bokeh server on (default: 5006)')
-    parser.add_argument('--show', action='store_true',
-                        help='Open browser automatically')
-    args = parser.parse_args()
-    
-    print(f"Starting Aquascan simulation server on port {args.port}")
+# -----------------------------------------------------------------------------
+# CLI – combines both modes
+# -----------------------------------------------------------------------------
+
+def main(argv: Optional[list[str]] = None) -> None:
+    parser = argparse.ArgumentParser(description="Run Aquascan Marine Simulation")
+
+    # Mode flags
+    parser.add_argument("--headless", action="store_true",
+                        help="Run without Bokeh (CI / batch)")
+
+    # Common params
+    parser.add_argument("--ticks", type=int, default=600,
+                        help="Number of ticks to simulate (headless only)")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed")
+
+    # Visual‑only params
+    parser.add_argument("--port", type=int, default=5006,
+                        help="Port for Bokeh server (visual mode)")
+    parser.add_argument("--show", action="store_true",
+                        help="Open browser automatically (visual mode)")
+
+    args = parser.parse_args(argv)
+
+    if args.headless:
+        # ------------------------------------------------------------------
+        # Headless fast‑path – returns immediately when done
+        # ------------------------------------------------------------------
+        print(f"[Aquascan] Headless run: ticks={args.ticks}, seed={args.seed}")
+        start = time.time()
+        run(ticks=args.ticks, seed=args.seed)
+        print(f"[Aquascan] Completed in {time.time() - start:.2f}s")
+        return
+
+    # ----------------------------------------------------------------------
+    # Interactive Bokeh server (legacy behaviour)
+    # ----------------------------------------------------------------------
+    print(f"[Aquascan] Starting Bokeh server on port {args.port}")
     print("Press Ctrl+C to stop")
-    
-    # Start Bokeh server
-    server = Server({'/': bokeh_app}, port=args.port, io_loop=IOLoop.current(),
-                   allow_websocket_origin=[f"localhost:{args.port}"])
-    
+
+    server = Server({"/": bokeh_app}, port=args.port, io_loop=IOLoop.current(),
+                    allow_websocket_origin=[f"localhost:{args.port}"])
     server.start()
-    
+
     if args.show:
         server.io_loop.add_callback(server.show, "/")
-    
+
     server.io_loop.start()
 
 

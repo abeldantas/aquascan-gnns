@@ -12,7 +12,7 @@ Responsibilities:
 
 import numpy as np
 import time
-from config.simulation_config import MAX_COMM_RANGE, OPTIMAL_COMM_RANGE
+from aquascan.config.simulation_config import MAX_COMM_RANGE, OPTIMAL_COMM_RANGE
 
 
 class ReliableProximityRelay:

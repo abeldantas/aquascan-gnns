@@ -12,8 +12,8 @@ Responsibilities:
 
 import numpy as np
 import noise
-from utils.hex_grid import get_deployment_positions
-from config.simulation_config import (
+from aquascan.utils.hex_grid import get_deployment_positions
+from aquascan.config.simulation_config import (
     AREA_LENGTH, AREA_WIDTH, SHORE_DISTANCE,
     get_resolution, MAX_COMM_RANGE, OPTIMAL_COMM_RANGE,
     PERLIN_SCALE, PERLIN_OCTAVES, CURRENT_STRENGTH, CURRENT_VARIABILITY,

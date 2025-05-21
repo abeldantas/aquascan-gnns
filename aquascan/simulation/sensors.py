@@ -10,7 +10,7 @@ Responsibilities:
 """
 
 import numpy as np
-from config.simulation_config import DETECTION_RADIUS
+from aquascan.config.simulation_config import DETECTION_RADIUS
 
 
 class SensorArray:

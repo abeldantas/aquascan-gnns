@@ -15,7 +15,7 @@ in the marine monitoring system.
 
 import numpy as np
 import noise
-from config.simulation_config import (
+from aquascan.config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
     MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
     SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE,
@@ -24,7 +24,7 @@ from config.simulation_config import (
     ENABLE_DISTORTION_FIELD, ENABLE_SECONDARY_NOISE,
     ENABLE_RANDOM_NOISE
 )
-from config import simulation_config
+from aquascan.config import simulation_config
 
 
 class BaseEntity:
