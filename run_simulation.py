@@ -85,12 +85,12 @@ def bokeh_app(doc):
         alpha=0.7, marker="circle"
     )
     
-    # σ-nodes (red squares) - larger size
-    plot.scatter(
-        x='x', y='y', source=sigma_source,
-        size=16, fill_color='#fc8d59', line_color='#fc8d59',
-        alpha=0.9, marker="circle"
-    )
+    # σ-nodes (red squares) - commented out to remove from graph
+    # plot.scatter(
+    #     x='x', y='y', source=sigma_source,
+    #     size=16, fill_color='#fc8d59', line_color='#fc8d59',
+    #     alpha=0.9, marker="circle"
+    # )
     
     # θ-contacts detected (bright green)
     plot.scatter(
@@ -138,16 +138,14 @@ def bokeh_app(doc):
     plot.segment(
         x0='x0', y0='y0', x1='x1', y1='y1',
         source=permanent_connections_source,
-        line_color='#3288bd', line_width=0.5, alpha=0.7,
-        legend_label="Permanent connections (<5km)"
+        line_color='#3288bd', line_width=0.5, alpha=0.7
     )
     
     # Intermittent connections (dashed light blue lines)
     plot.segment(
         x0='x0', y0='y0', x1='x1', y1='y1',
         source=intermittent_connections_source,
-        line_color='#73c2fb', line_width=0.5, alpha=0.5, line_dash='dashed',
-        legend_label="Intermittent connections (5-10km)"
+        line_color='#73c2fb', line_width=0.5, alpha=0.5, line_dash='dashed'
     )
     
     # Info panel
@@ -161,13 +159,13 @@ def bokeh_app(doc):
         <b>Marine Entities:</b> {len(simulation.theta_contacts)} θ-contacts<br>
         <b>Status:</b> Ready
         
-        <h4>Entity Types:</h4>
+        <h4 style="margin-top: 25px;">Entity Types:</h4>
         <ul style="padding-left: 20px; margin-top: 5px;">
           <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
           <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
         </ul>
         
-        <h4>Marine Species:</h4>
+        <h4 style="margin-top: 25px;">Marine Species:</h4>
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         </div>
         """,
@@ -189,26 +187,28 @@ def bokeh_app(doc):
     speed_x256 = Button(label="x256", button_type="default", width=50)
 
     # Control headers
-    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(15, 0, 5, 0))
-    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(15, 0, 5, 0))
+    control_header = Div(text="<h4>Simulation Controls:</h4>", margin=(30, 0, 5, 0))
+    speed_header = Div(text="<h4>Simulation Speed:</h4>", margin=(30, 0, 5, 0))
     
     # Group the controls in sections with padding
     simulation_buttons = row(start_button, stop_button, margin=(0, 0, 10, 0))
-    speed_buttons = row(speed_realtime, speed_x4, speed_x8, speed_x16, 
-                    speed_x32, speed_x64, speed_x128, speed_x256, 
-                    margin=(0, 0, 15, 0))
+    speed_buttons_row1 = row(speed_realtime, speed_x4, speed_x8, speed_x16, 
+                    speed_x32, margin=(0, 0, 15, 0))
+    speed_buttons_row2 = row(speed_x64, speed_x128, speed_x256, 
+                    margin=(0, 0, 0, 0))
+    speed_buttons = column(speed_buttons_row1, Div(height=10), speed_buttons_row2)
     
     # Create the main control column with proper spacing and fixed height
     controls = column(
         info_div,
-        Div(height=20),  # Add spacing
+        Div(height=40),  # Increased spacing
         control_header,
         simulation_buttons,
-        Div(height=10),  # Add spacing
+        Div(height=30),  # Increased spacing
         speed_header,
         speed_buttons,
         sizing_mode="stretch_width",
-        height=600  # Fixed height to prevent overlap
+        height=650  # Increased height to accommodate more spacing
     )
     
     # Update data function
@@ -382,13 +382,13 @@ def bokeh_app(doc):
         <b>Node Connections:</b> {simulation.stats.get('permanent_connections', 0)} permanent, {simulation.stats.get('intermittent_connections', 0)} intermittent<br>
         <b>Avg. Connections/Node:</b> {(simulation.stats.get('permanent_connections', 0) + simulation.stats.get('intermittent_connections', 0))*2 / max(1, len(simulation.epsilon_nodes)):.1f} (min: 3, max: 5)
         
-        <h4>Entity Types:</h4>
+        <h4 style="margin-top: 25px;">Entity Types:</h4>
         <ul style="padding-left: 20px; margin-top: 5px;">
           <li>Detected θ-contacts: <span style="color: #00cc00;">●</span> (bright green)</li>
           <li>Undetected θ-contacts: <span style="color: #999999;">●</span> (grey)</li>
         </ul>
         
-        <h4>Marine Species:</h4>
+        <h4 style="margin-top: 25px;">Marine Species:</h4>
         <div id="contacts-list" style="max-height: 150px; overflow-y: auto; margin-top: 5px;">
         {contacts_list_html}
         </div>
