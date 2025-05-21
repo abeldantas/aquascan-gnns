@@ -70,10 +70,10 @@ MARINE_ENTITIES = {
 }
 
 # Environmental Parameters
-CURRENT_STRENGTH = 0.003  # Maximum current speed in m/s (reduced by factor of 10)
-CURRENT_VARIABILITY = 0.05  # Variability in current strength (reduced by factor of 10)
-PERLIN_SCALE = 0.003  # Scale factor for Perlin noise (reduced by factor of 10)
-PERLIN_OCTAVES = 2  # Number of octaves for Perlin noise (reduced from 3)
+CURRENT_STRENGTH = 0.02  # Maximum speed of ocean currents in m/s
+CURRENT_VARIABILITY = 0.01  # Variability in current strength (0-1 range)
+PERLIN_SCALE = 0.003  # Scale factor for Perlin noise, controls smoothness of currents
+PERLIN_OCTAVES = 2  # Number of octaves for Perlin noise, affects detail level
 
 # Ocean Current Parameters - Time Cycling
 CURRENT_ANGLE_CYCLE_DAYS = 1.0  # Days per full cycle of current angle changes
@@ -81,12 +81,12 @@ CURRENT_STRENGTH_CYCLE_DAYS = 0.5  # Days per full cycle of current strength cha
 CURRENT_PHASE_OFFSET = 0.25  # Phase offset between angle and strength cycles (0-1)
 
 # Epsilon Node Movement Parameters
-EPSILON_NOISE_FACTOR = 0.025  # Individual noise factor (reduced by factor of 10)
-DISTORTION_FIELD_SCALE = 0.005  # Scale factor for distortion field (reduced by factor of 10)
-SECONDARY_NOISE_FACTOR = 0.03  # Secondary noise layer factor (reduced by factor of 10)
-SECONDARY_NOISE_FREQUENCY = 0.01  # Frequency of secondary noise pattern (reduced by factor of 10)
-INDEPENDENT_DRIFT_STRENGTH = 0.0002  # Strength of independent drift (reduced by factor of 10)
-INDEPENDENT_DRIFT_PERSISTENCE = 0.99  # How much previous direction influences new direction (increased)
+EPSILON_NOISE_FACTOR = 0.05  # Individual noise factor
+DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field
+SECONDARY_NOISE_FACTOR = 0.03  # Secondary noise layer factor
+SECONDARY_NOISE_FREQUENCY = 0.01  # Frequency of secondary noise pattern
+INDEPENDENT_DRIFT_STRENGTH = 0.0001  # Strength of independent drift
+INDEPENDENT_DRIFT_PERSISTENCE = 0.001  # How much previous direction influences new direction
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates
@@ -99,6 +99,13 @@ ENTITY_COLORS = {
     "atlantic_horse_mackerel": "#fee08b",  # yellow
     "bottlenose_dolphin": "#d53e4f",  # red
 }
+
+# Toggle for enabling/disabling ocean currents and other sources of epsilon node movement
+ENABLE_OCEAN_CURRENTS = True
+ENABLE_DISTORTION_FIELD = False
+ENABLE_SECONDARY_NOISE = False
+ENABLE_INDEPENDENT_DRIFT = True
+ENABLE_RANDOM_NOISE = False
 
 def get_resolution():
     """Return the current resolution value in kilometers."""

@@ -31,7 +31,7 @@ def bokeh_app(doc):
     import numpy as np
     from bokeh.plotting import figure
     from bokeh.layouts import column, row
-    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select, Arrow, NormalHead, Label
+    from bokeh.models import ColumnDataSource, Button, Div, Slider, Select, Arrow, VeeHead, Label
     
     # Create simulation instance
     simulation = AquascanSimulation()
@@ -110,8 +110,8 @@ def bokeh_app(doc):
     })
     
     # Add current direction arrow
-    arrow_head_size = 2.0
-    arrow = Arrow(end=NormalHead(size=arrow_head_size * 2, fill_color="#0066cc", line_color="#0066cc"),
+    arrow_head_size = 4.0  # Increased from 2.0
+    arrow = Arrow(end=VeeHead(size=arrow_head_size * 2, fill_color="#0066cc", line_color="#0066cc"),
                  x_start='x', y_start='y', x_end='x_end', y_end='y_end',
                  source=current_indicator_source,
                  line_width=2, line_color="#0066cc")
@@ -419,7 +419,7 @@ def bokeh_app(doc):
             current_vector = simulation.ocean_area.calculate_ocean_current(center_pos, simulation.current_time)
             
             # Scale for visualization
-            scale_factor = 5.0  # Adjust for visibility
+            scale_factor = 10.0  # Adjust for visibility
             dx, dy = current_vector
             strength = np.sqrt(dx**2 + dy**2)
             direction = np.arctan2(dy, dx) * 180 / np.pi  # Convert to degrees
@@ -427,6 +427,13 @@ def bokeh_app(doc):
             # Update arrow vector
             current_indicator_source.data['x_end'] = [current_indicator_source.data['x'][0] + dx * scale_factor]
             current_indicator_source.data['y_end'] = [current_indicator_source.data['y'][0] + dy * scale_factor]
+            
+            # Update arrow layout with new size
+            arrow = Arrow(end=VeeHead(size=arrow_head_size * 2, fill_color="#0066cc", line_color="#0066cc"),
+                         x_start='x', y_start='y', x_end='x_end', y_end='y_end',
+                         source=current_indicator_source,
+                         line_width=2, line_color="#0066cc")
+            plot.add_layout(arrow)
             
             # Update text
             direction_name = get_direction_name(direction)
