@@ -308,3 +308,45 @@ with h5py.File("data/raw/42.h5") as f:
 
 > **Tip** — treat snapshots as immutable; if the schema changes,
 > write to a new folder rather than mutating existing files.
+
+## Dataset Module
+
+### Graph Building
+
+The `aquascan.dataset` module converts raw simulation data (HDF5) into graph structures for GNN training:
+
+```bash
+python -m aquascan.dataset.build_graphs \
+       --raw data/raw \
+       --out data/processed \
+       --context 60 \  # Context window length in ticks
+       --horizon 30 \  # Future prediction window length
+       --split 0.7 0.15 0.15 \  # train/val/test split
+       --adv_fraction 0.05  # Fraction of adversarial examples
+```
+
+### Data Structure
+
+- **Raw data**: `data/raw/*.h5` - HDF5 files from simulation containing nodes and edges
+- **Processed data**: 
+  - `data/processed/train.pt` - Training graphs
+  - `data/processed/val.pt` - Validation graphs
+  - `data/processed/test.pt` - Test graphs
+  - `data/processed/adversarial.pt` - Adversarial examples
+  - `data/processed/meta.json` - Dataset metadata
+
+### Graph Format
+
+Each graph is a `HeteroData` object (PyTorch Geometric) with:
+- Nodes: `epsilon` (sensors) and `theta` (marine entities)
+- Node features: `[x, y, Δx, Δy]` (position and velocity)
+- Edge types:
+  - `epsilon -> communicates -> epsilon`: Communication links
+  - `epsilon -> detects -> theta`: Detection events in context window
+  - `epsilon -> will_detect -> theta`: Target edges for prediction (binary labels)
+
+### Developer Notes
+
+- Large binary files (`.h5`, `.pt`) are tracked with Git LFS
+- Processing large datasets can be slow (expect minutes to hours depending on size)
+- Required dependencies: `torch`, `torch_geometric`, `h5py`, `numpy`
