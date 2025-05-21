@@ -19,7 +19,8 @@ from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
     MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
     SIMULATION_SPEED, EPSILON_NOISE_FACTOR, DISTORTION_FIELD_SCALE,
-    SECONDARY_NOISE_FACTOR, SECONDARY_NOISE_FREQUENCY
+    SECONDARY_NOISE_FACTOR, SECONDARY_NOISE_FREQUENCY,
+    INDEPENDENT_DRIFT_STRENGTH, INDEPENDENT_DRIFT_PERSISTENCE
 )
 
 
@@ -69,6 +70,10 @@ class EpsilonNode(BaseEntity):
         self.detected_contacts = {}  # Dictionary to store detected contacts
         self.dob = []  # Distributed Observation Buffer (local data storage)
         self.last_update_time = 0
+        
+        # Initialize independent movement direction
+        self.independent_direction = np.random.uniform(0, 2 * np.pi)
+        self.independent_speed = np.random.uniform(0.5, 1.5) * INDEPENDENT_DRIFT_STRENGTH
     
     def update(self, current_time, ocean_area):
         """Update ε-node position based on ocean currents with added randomness."""
@@ -77,6 +82,7 @@ class EpsilonNode(BaseEntity):
         if dt <= 0:
             return
         
+        # === LAYER 1: OCEAN CURRENT ===
         # Get current at this position
         current_vector = ocean_area.calculate_ocean_current(self.position, current_time)
         
@@ -84,6 +90,7 @@ class EpsilonNode(BaseEntity):
         # Note: dt already includes SIMULATION_SPEED effects from the tick() method
         drift = np.array(current_vector) * dt * 0.001  # m/s to km/s
         
+        # === LAYER 2: DISTORTION FIELD ===
         # Generate a distortion field based on position
         # This creates spatially varied currents - nodes in different regions behave differently
         nx = self.position[0] / ocean_area.length * DISTORTION_FIELD_SCALE * 10
@@ -95,8 +102,8 @@ class EpsilonNode(BaseEntity):
         # Apply the distortion factor to the drift vector
         drift = drift * distortion_factor
         
-        # Add secondary noise layer using a different noise pattern
-        # This creates a secondary movement pattern that's different for each epsilon
+        # === LAYER 3: SECONDARY NOISE ===
+        # Generate a secondary movement pattern that's different for each epsilon
         nx2 = self.position[0] / ocean_area.length * SECONDARY_NOISE_FREQUENCY * 10
         ny2 = self.position[1] / ocean_area.width * SECONDARY_NOISE_FREQUENCY * 10
         # Use node ID as a third dimension to ensure different patterns per node
@@ -116,6 +123,7 @@ class EpsilonNode(BaseEntity):
             perp_y /= perp_mag
             
             # Scale by drift magnitude and noise factor
+            # This time make it a much stronger factor
             secondary_drift = np.array([
                 perp_x * np.linalg.norm(drift) * SECONDARY_NOISE_FACTOR * sec_noise_val,
                 perp_y * np.linalg.norm(drift) * SECONDARY_NOISE_FACTOR * sec_noise_val
@@ -124,12 +132,27 @@ class EpsilonNode(BaseEntity):
             # Add to drift vector
             drift = drift + secondary_drift
         
+        # === LAYER 4: PERSISTENT INDEPENDENT MOVEMENT ===
+        # Gradually change the independent direction with some randomness
+        direction_change = np.random.normal(0, 0.1)  # Small random change
+        self.independent_direction = (
+            self.independent_direction * INDEPENDENT_DRIFT_PERSISTENCE + 
+            direction_change * (1 - INDEPENDENT_DRIFT_PERSISTENCE)
+        ) % (2 * np.pi)
+        
+        # Calculate independent movement vector
+        independent_dx = np.cos(self.independent_direction) * self.independent_speed * dt
+        independent_dy = np.sin(self.independent_direction) * self.independent_speed * dt
+        independent_drift = np.array([independent_dx, independent_dy])
+        
+        # === LAYER 5: RANDOM NOISE ===
         # Add individual noise to movement (with magnitude based on EPSILON_NOISE_FACTOR)
         noise_magnitude = np.linalg.norm(drift) * EPSILON_NOISE_FACTOR
         individual_noise = np.random.normal(0, noise_magnitude, 2)  # 2D random vector
         
-        # Update position with drift and noise
-        self.position += drift + individual_noise
+        # === COMBINE ALL MOVEMENT COMPONENTS ===
+        # Update position with all layers of movement
+        self.position += drift + independent_drift + individual_noise
         
         # No boundary checking - allow nodes to move freely
         
