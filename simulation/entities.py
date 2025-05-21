@@ -14,6 +14,7 @@ in the marine monitoring system.
 """
 
 import numpy as np
+import noise
 from config.simulation_config import (
     DETECTION_RADIUS, MARINE_ENTITIES,
     MAX_COMM_RANGE, TIME_STEP, MOTION_SUBSTEPS,
@@ -87,8 +88,7 @@ class EpsilonNode(BaseEntity):
         nx = self.position[0] / ocean_area.length * DISTORTION_FIELD_SCALE * 10
         ny = self.position[1] / ocean_area.width * DISTORTION_FIELD_SCALE * 10
         
-        # Use noise or a simpler approach for distortion
-        import noise  # Import here to ensure it's available
+        # Use noise for distortion
         distortion_factor = 0.5 + noise.pnoise2(nx, ny, octaves=2)  # Range approximately 0-1
         
         # Apply the distortion factor to the drift vector

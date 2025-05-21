@@ -105,14 +105,14 @@ def bokeh_app(doc):
     current_indicator_source = ColumnDataSource({
         'x': [AREA_LENGTH / 2], 
         'y': [SHORE_DISTANCE - 2],  # Position below the deployment area
-        'angle': [0],  # Will be updated with current direction
-        'strength': [0],  # Will be updated with current strength
+        'x_end': [AREA_LENGTH / 2],  # Initially same as start position
+        'y_end': [SHORE_DISTANCE - 2], # Initially same as start position
     })
     
     # Add current direction arrow
     arrow_head_size = 2.0
     arrow = Arrow(end=NormalHead(size=arrow_head_size * 2, fill_color="#0066cc", line_color="#0066cc"),
-                 x_start='x', y_start='y', x_end='x', y_end='y',
+                 x_start='x', y_start='y', x_end='x_end', y_end='y_end',
                  source=current_indicator_source,
                  line_width=2, line_color="#0066cc")
     plot.add_layout(arrow)
@@ -416,7 +416,7 @@ def bokeh_app(doc):
         if len(simulation.epsilon_nodes) > 0:
             # Get a sample current vector from the center of the area
             center_pos = [AREA_LENGTH/2, SHORE_DISTANCE + AREA_WIDTH/2]
-            current_vector = simulation.ocean_area.calculate_ocean_current(center_pos, current_time)
+            current_vector = simulation.ocean_area.calculate_ocean_current(center_pos, simulation.current_time)
             
             # Scale for visualization
             scale_factor = 5.0  # Adjust for visibility
