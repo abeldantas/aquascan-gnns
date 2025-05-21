@@ -81,12 +81,12 @@ CURRENT_STRENGTH_CYCLE_DAYS = 0.5  # Days per full cycle of current strength cha
 CURRENT_PHASE_OFFSET = 0.25  # Phase offset between angle and strength cycles (0-1)
 
 # Epsilon Node Movement Parameters
-EPSILON_NOISE_FACTOR = 0.6  # Individual noise factor (increased from 0.4)
-DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field (higher = more spatial variation)
-SECONDARY_NOISE_FACTOR = 0.8  # Secondary noise layer factor (increased from 0.3)
+EPSILON_NOISE_FACTOR = 0.25  # Individual noise factor (reduced from 0.6)
+DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field
+SECONDARY_NOISE_FACTOR = 0.3  # Secondary noise layer factor (reduced from 0.8)
 SECONDARY_NOISE_FREQUENCY = 0.1  # Frequency of secondary noise pattern
-INDEPENDENT_DRIFT_STRENGTH = 0.02  # Strength of independent drift in km/s
-INDEPENDENT_DRIFT_PERSISTENCE = 0.95  # How much previous direction influences new direction (0-1)
+INDEPENDENT_DRIFT_STRENGTH = 0.002  # Strength of independent drift in km/s (reduced from 0.02)
+INDEPENDENT_DRIFT_PERSISTENCE = 0.98  # How much previous direction influences new direction (increased slightly)
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates
