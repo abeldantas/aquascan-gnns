@@ -477,9 +477,9 @@ def bokeh_app(doc):
             <thead>
                 <tr>
                     <th style='border: 1px solid #ddd; padding: 8px;'>ID</th>
-                    <th style='border: 1px solid #ddd; padding: 8px;'>English Name</th>
-                    <th style='border: 1px solid #ddd; padding: 8px;'>Latin Name</th>
-                    <th style='border: 1px solid #ddd; padding: 8px;'>Status</th>
+                    <th style='border: 1px solid #ddd; padding: 8px; width: 30%;'>English Name</th>
+                    <th style='border: 1px solid #ddd; padding: 8px; width: 30%;'>Latin Name</th> <!-- Increased width -->
+                    <th style='border: 1px solid #ddd; padding: 8px; width: 30%;'>Status</th> <!-- Increased width -->
                 </tr>
             </thead>
             <tbody>
@@ -502,8 +502,8 @@ def bokeh_app(doc):
             <tr>
                 <td style='border: 1px solid #ddd; padding: 8px;'>{contact.id}</td>
                 <td style='border: 1px solid #ddd; padding: 8px;'>{english_name}</td>
-                <td style='border: 1px solid #ddd; padding: 8px;'>{latin_name}</td>
-                <td style='border: 1px solid #ddd; padding: 8px; color: {status_color};'>{status_text}</td>
+                <td style='border: 1px solid #ddd; padding: 8px; width: 30%;'>{latin_name}</td>
+                <td style='border: 1px solid #ddd; padding: 8px; width: 20%; color: {status_color};'>{status_text}</td>
             </tr>
             """
 
