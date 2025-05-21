@@ -212,18 +212,18 @@ def bokeh_app(doc):
     simulation_buttons = row(
         start_button, 
         stop_button, 
-        spacing=10  # Use spacing parameter instead of margins
+        spacing=2
     )
     
     # Create the speed button rows with proper spacing
     speed_buttons_row1 = row(
         speed_realtime, speed_x4, speed_x8, speed_x16, speed_x32,
-        spacing=5  # Consistent spacing between buttons
+        spacing=1
     )
     
     speed_buttons_row2 = row(
         speed_x64, speed_x128, speed_x256,
-        spacing=5  # Consistent spacing between buttons
+        spacing=1
     )
     
     # Organize the sections using proper vertical layout with spacers
@@ -231,27 +231,27 @@ def bokeh_app(doc):
         control_header,
         simulation_buttons,
         sizing_mode="stretch_width",
-        spacing=5  # Proper spacing between elements
+        spacing=1
     )
     
     speed_section = column(
         speed_header,
         speed_buttons_row1,
-        Spacer(height=5),  # Reduced spacer between rows
+        Spacer(height=5),
         speed_buttons_row2,
         sizing_mode="stretch_width",
-        spacing=5  # Proper spacing between elements
+        spacing=1
     )
     
     # Create the main control column with proper layout and spacing
     controls = column(
         info_div,
-        Spacer(height=15),  # Reduced spacer
+        Spacer(height=5),
         controls_section,
-        Spacer(height=15),  # Reduced spacer for section separation
+        Spacer(height=5),
         speed_section,
         sizing_mode="stretch_width",
-        spacing=10  # Overall section spacing
+        spacing=5
     )
     
     # Update data function
