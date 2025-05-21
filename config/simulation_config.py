@@ -70,10 +70,10 @@ MARINE_ENTITIES = {
 }
 
 # Environmental Parameters
-CURRENT_STRENGTH = 0.03  # Maximum current speed in m/s (increased from 0.01)
-CURRENT_VARIABILITY = 0.5  # Variability in current strength (increased from 0.15)
-PERLIN_SCALE = 0.03  # Scale factor for Perlin noise (increased from 0.01 - smaller = smoother)
-PERLIN_OCTAVES = 3  # Number of octaves for Perlin noise (increased from 2)
+CURRENT_STRENGTH = 0.003  # Maximum current speed in m/s (reduced by factor of 10)
+CURRENT_VARIABILITY = 0.05  # Variability in current strength (reduced by factor of 10)
+PERLIN_SCALE = 0.003  # Scale factor for Perlin noise (reduced by factor of 10)
+PERLIN_OCTAVES = 2  # Number of octaves for Perlin noise (reduced from 3)
 
 # Ocean Current Parameters - Time Cycling
 CURRENT_ANGLE_CYCLE_DAYS = 1.0  # Days per full cycle of current angle changes
@@ -81,12 +81,12 @@ CURRENT_STRENGTH_CYCLE_DAYS = 0.5  # Days per full cycle of current strength cha
 CURRENT_PHASE_OFFSET = 0.25  # Phase offset between angle and strength cycles (0-1)
 
 # Epsilon Node Movement Parameters
-EPSILON_NOISE_FACTOR = 0.25  # Individual noise factor (reduced from 0.6)
-DISTORTION_FIELD_SCALE = 0.05  # Scale factor for distortion field
-SECONDARY_NOISE_FACTOR = 0.3  # Secondary noise layer factor (reduced from 0.8)
-SECONDARY_NOISE_FREQUENCY = 0.1  # Frequency of secondary noise pattern
-INDEPENDENT_DRIFT_STRENGTH = 0.002  # Strength of independent drift in km/s (reduced from 0.02)
-INDEPENDENT_DRIFT_PERSISTENCE = 0.98  # How much previous direction influences new direction (increased slightly)
+EPSILON_NOISE_FACTOR = 0.025  # Individual noise factor (reduced by factor of 10)
+DISTORTION_FIELD_SCALE = 0.005  # Scale factor for distortion field (reduced by factor of 10)
+SECONDARY_NOISE_FACTOR = 0.03  # Secondary noise layer factor (reduced by factor of 10)
+SECONDARY_NOISE_FREQUENCY = 0.01  # Frequency of secondary noise pattern (reduced by factor of 10)
+INDEPENDENT_DRIFT_STRENGTH = 0.0002  # Strength of independent drift (reduced by factor of 10)
+INDEPENDENT_DRIFT_PERSISTENCE = 0.99  # How much previous direction influences new direction (increased)
 
 # Visualization Settings
 VIZ_UPDATE_INTERVAL = 100  # milliseconds between visualization updates

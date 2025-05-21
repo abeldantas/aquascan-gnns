@@ -73,7 +73,7 @@ class EpsilonNode(BaseEntity):
         
         # Initialize independent movement direction
         self.independent_direction = np.random.uniform(0, 2 * np.pi)
-        self.independent_speed = np.random.uniform(0.7, 1.3) * INDEPENDENT_DRIFT_STRENGTH
+        self.independent_speed = np.random.uniform(0.8, 1.2) * INDEPENDENT_DRIFT_STRENGTH
     
     def update(self, current_time, ocean_area):
         """Update ε-node position based on ocean currents with added randomness."""
@@ -134,7 +134,7 @@ class EpsilonNode(BaseEntity):
         
         # === LAYER 4: PERSISTENT INDEPENDENT MOVEMENT ===
         # Gradually change the independent direction with some randomness
-        direction_change = np.random.normal(0, 0.1)  # Small random change
+        direction_change = np.random.normal(0, 0.01)  # Reduced from 0.1
         self.independent_direction = (
             self.independent_direction * INDEPENDENT_DRIFT_PERSISTENCE + 
             direction_change * (1 - INDEPENDENT_DRIFT_PERSISTENCE)
