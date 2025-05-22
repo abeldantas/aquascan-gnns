@@ -19,6 +19,7 @@ The simulation focuses on a marine monitoring network deployed in a rectangular 
 - ✅ Module-based architecture with proper imports
 - ✅ Unit testing framework
 - ✅ Data persistence with HDF5 snapshots
+- ✅ **Kalman filter baseline implementation**
 - ⬜ GNN implementation for prediction
 - ⬜ Comparison with Kalman filter baseline
 
@@ -40,8 +41,13 @@ aquascan-gnns/
 │   ├── utils/
 │   │   └── hex_grid.py    # Utilities for hexagonal grid coordinates
 │   └── run_simulation.py  # Entry point script
+├── scripts/            # Analysis and evaluation scripts
+│   └── kalman_eval.py  # Kalman filter baseline evaluation
+├── results/            # Output results and benchmarks
+│   └── kalman_baseline.json  # Kalman filter evaluation results
 ├── tests/              # Unit tests
-│   └── test_cfg.py     # Tests for configuration functionality
+│   ├── test_cfg.py     # Tests for configuration functionality
+│   └── test_kalman_baseline.py  # Tests for Kalman baseline
 └── requirements.txt    # Project dependencies
 ```
 
@@ -350,3 +356,128 @@ Each graph is a `HeteroData` object (PyTorch Geometric) with:
 - Large binary files (`.h5`, `.pt`) are tracked with Git LFS
 - Processing large datasets can be slow (expect minutes to hours depending on size)
 - Required dependencies: `torch`, `torch_geometric`, `h5py`, `numpy`
+
+## Kalman Filter Baseline
+
+### Overview
+
+The Kalman filter baseline provides a classical physics-based benchmark for marine entity detection prediction. It implements a constant-velocity Kalman filter that predicts future ε-θ detection links based on historical position data.
+
+### Implementation
+
+**Algorithm Details:**
+- **State Vector**: `[x, y, vx, vy]ᵀ` (position and velocity)
+- **Motion Model**: Constant velocity with process noise
+- **Context Window**: Uses last `context_len` positions to initialize/update filter
+- **Prediction Horizon**: Predicts `horizon_len` steps ahead (typically 1 step)
+- **Edge Reconstruction**: Adds detection edges for any ε-θ pair with predicted distance ≤ 100m
+
+**Key Features:**
+- Per-θ Kalman filter for each marine entity
+- Classical constant-velocity motion model
+- Distance-based edge reconstruction
+- Evaluation using AUC, precision, and recall metrics
+
+### Usage
+
+#### Running the Baseline Evaluation
+
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run Kalman filter evaluation on test set
+python scripts/kalman_eval.py
+```
+
+This will:
+1. Load processed test graphs from `data/processed/test.pt`
+2. Run Kalman filter prediction for each marine entity
+3. Reconstruct detection edges based on 100m distance threshold
+4. Calculate AUC, precision, and recall metrics
+5. Save results to `results/kalman_baseline.json`
+
+#### Expected Output
+
+```
+Running Kalman Filter Baseline Evaluation
+Processing 90 graphs...
+Processing graph 1/90
+...
+Total predictions: 564300
+Positive labels: 90.0
+Predicted positive: 54.0
+Results:
+  AUC: 0.8000
+  Precision: 1.0000
+  Recall: 0.6000
+
+Results saved to results/kalman_baseline.json
+```
+
+### Results Interpretation
+
+The baseline achieves:
+- **AUC: 0.80** - Good discrimination between true and false detections
+- **Precision: 1.00** - No false positives (conservative predictions)
+- **Recall: 0.60** - Captures 60% of actual future detections
+
+These results demonstrate that a simple physics-based approach can achieve reasonable performance, providing a solid baseline for comparison with more sophisticated GNN approaches.
+
+### Files and Structure
+
+- **`scripts/kalman_eval.py`**: Main evaluation script
+  - Implements constant-velocity Kalman filter
+  - Loads test data and generates predictions
+  - Calculates evaluation metrics
+  - Saves results to JSON
+
+- **`results/kalman_baseline.json`**: Evaluation results
+  ```json
+  {
+    "AUC": 0.8,
+    "Precision": 1.0,
+    "Recall": 0.6
+  }
+  ```
+
+- **`tests/test_kalman_baseline.py`**: Unit tests
+  - Validates result file structure
+  - Checks data loading functionality
+  - Ensures metric values are reasonable
+
+### Running Tests
+
+```bash
+# Run Kalman baseline tests
+python -m pytest tests/test_kalman_baseline.py -v
+
+# Run all tests including Kalman baseline
+python -m pytest tests/ -v
+```
+
+### Performance
+
+- **Runtime**: ~10 seconds for full test set evaluation
+- **Memory**: Minimal memory usage (pure NumPy operations)
+- **Scalability**: Linear with number of graphs and entities
+
+### Technical Notes
+
+**Kalman Filter Implementation:**
+- Uses NumPy for efficient matrix operations
+- Process noise covariance tuned for marine entity motion
+- Handles variable numbers of context observations
+- Robust to missing or incomplete data
+
+**Edge Reconstruction:**
+- Distance threshold: 100m (0.1km)
+- Binary classification: within threshold = detection
+- Evaluates all possible ε-θ pairs per graph
+- Highly imbalanced dataset (90 positive vs 564,210 negative labels)
+
+**Evaluation Methodology:**
+- Uses scikit-learn metrics for standard evaluation
+- Binary threshold based on distance for precision/recall
+- AUC calculated using predicted probabilities
+- Consistent with GNN evaluation framework
