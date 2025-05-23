@@ -1,7 +1,18 @@
 # 🧪 Experiment Roadmap: Testing Task Difficulty Hypothesis
 
 ## 🎯 **Hypothesis to Test**
-The GNN's "perfect" AUC = 1.00 performance is due to **trivially short prediction horizon (30 ticks = 30 seconds)**. Increasing to **300 ticks (5 minutes)** should make the task realistically challenging and reduce GNN performance to believable levels.
+The GNN's "perfect" AUC = 1.00 performance is due to **trivially short prediction horizon (30 ticks = 64 seconds)**. Increasing to **150 ticks (5.3 minutes)** should make the task realistically challenging and reduce GNN performance to believable levels.
+
+## ⚠️ **Updated for Actual Dataset**
+Our optimized dataset has:
+- **235 total ticks** (not 300!)
+- **48 snapshots** at 5-tick intervals
+- **x128 speed** (1 tick = 128 seconds)
+
+Therefore, we adjust the horizons:
+- **30 ticks** = 64 seconds (easy baseline)
+- **100 ticks** = 3.5 minutes (moderate challenge)
+- **150 ticks** = 5.3 minutes (maximum reasonable horizon)
 
 ## 📋 **Complete Experimental Protocol**
 
