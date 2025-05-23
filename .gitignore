@@ -49,7 +49,11 @@ env/
 .DS_Store
 Thumbs.db
 
-
+# PyTorch models
 *.pt
 
+# Temporary files
 tmp.md
+
+# Generated visualizations
+visualizations/

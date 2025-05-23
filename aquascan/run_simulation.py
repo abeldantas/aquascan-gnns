@@ -17,7 +17,7 @@ from omegaconf import OmegaConf
 # Public, test‑friendly API
 # -----------------------------------------------------------------------------
 
-def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Optional[Path] = None) -> "AquascanSimulation":
+def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Optional[Path] = None, snapshot_interval: int = 1) -> "AquascanSimulation":
     """Run **one** simulation for *ticks* steps.
 
     Args:
@@ -25,6 +25,7 @@ def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Opt
         seed: Random seed for reproducibility
         visual: Whether to run in visual mode (Bokeh)
         out_path: If provided, exports simulation snapshots to this HDF5 file
+        snapshot_interval: Interval for saving snapshots (default: 1 = every tick)
 
     Returns the *AquascanSimulation* instance so that unit tests can inspect
     internal state (e.g. node counts, stats).  If visual=False, no Bokeh code is imported –
@@ -34,6 +35,9 @@ def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Opt
 
     sim = AquascanSimulation(seed=seed)
     sim.initialize()
+    
+    # Set speed to x128 as determined by visualization analysis
+    sim.set_speed(128)
 
     if visual:
         # Visual mode would be handled by the main() function
@@ -51,24 +55,34 @@ def run(ticks: int = 600, *, seed: int = 42, visual: bool = False, out_path: Opt
             if isinstance(out_path, str):
                 out_path = Path(out_path)
                 
+            # Calculate actual number of snapshots
+            snapshot_count = (ticks // snapshot_interval) + 1
+                
             # Create metadata for the run
             meta = {
                 "seed": seed,
                 "ticks": ticks,
+                "snapshot_interval": snapshot_interval,
+                "snapshot_count": snapshot_count,
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "epsilon_count": len(sim.epsilon_nodes),
                 "theta_count": len(sim.theta_contacts),
                 "resolution": sim.ocean_area.resolution,
             }
             
-            # Create the writer
-            out = SnapshotWriter(out_path, meta=meta, est_ticks=ticks)
+            # Create the writer - estimate based on actual snapshots
+            out = SnapshotWriter(out_path, meta=meta, est_ticks=snapshot_count)
             
-            # Export each tick
-            for t in range(ticks):
-                sim.tick()
-                nodes, edges = sim.export_snapshot(t)
-                out.append(t, nodes, edges)
+            # Export snapshots at intervals
+            for t in range(ticks + 1):
+                # Always run the tick (except on the last iteration)
+                if t > 0:
+                    sim.tick()
+                
+                # Save snapshot at intervals (including tick 0)
+                if t % snapshot_interval == 0:
+                    nodes, edges = sim.export_snapshot(t)
+                    out.append(t, nodes, edges)
                 
             # Close the writer
             out.close()

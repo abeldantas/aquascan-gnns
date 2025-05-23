@@ -19,9 +19,21 @@ The simulation focuses on a marine monitoring network deployed in a rectangular 
 - ✅ Module-based architecture with proper imports
 - ✅ Unit testing framework
 - ✅ Data persistence with HDF5 snapshots
+- ✅ **Trajectory visualization and analysis**
+- ✅ **Optimized data generation pipeline (5-tick intervals)**
 - ✅ **Kalman filter baseline implementation**
 - ⬜ GNN implementation for prediction
 - ⬜ Comparison with Kalman filter baseline
+
+## Key Findings from Visualization Analysis
+
+Through trajectory visualization with 48-frame grids, we determined:
+- **Optimal snapshot interval**: 5 ticks (640 seconds) at x128 speed
+- **Efficient storage**: ~2MB per simulation run (vs ~10MB with every tick)
+- **Smooth motion tracking**: Entities move 10-20m between frames
+- **Prediction challenge validation**: 30-tick predictions are trivial, 300-tick predictions are appropriately challenging
+
+See `docs/visualization_results.md` for detailed analysis and `docs/reference_48frame_grid.png` for the reference visualization.
 
 ## Project Structure
 ```
@@ -29,22 +41,36 @@ aquascan-gnns/
 ├── configs/            # YAML configuration files
 │   └── base.yml        # Default configuration
 ├── aquascan/           # Main package
+│   ├── batch/          # Batch generation tools
+│   │   └── generate.py # Parallel simulation runner
 │   ├── config/         # Configuration module
 │   │   └── simulation_config.py  # Central configuration file
+│   ├── dataset/        # Dataset building and processing
+│   │   └── build_graphs.py  # Convert HDF5 to PyG graphs
+│   ├── io/             # Input/output utilities
+│   │   └── writer.py   # HDF5 snapshot writer
+│   ├── models/         # Machine learning models
+│   │   └── gnn.py      # Graph Neural Network implementation
 │   ├── simulation/     # Core simulation components
 │   │   ├── ocean_area.py  # Deployment area and node positioning
 │   │   ├── entities.py    # ε-nodes, σ-nodes, and θ-contact classes
 │   │   ├── sensors.py     # Signal simulation and detection
 │   │   ├── communication.py  # Communication protocols (RPR and SCV)
 │   │   ├── simulation_loop.py  # Main simulation tick procedure
+│   │   ├── network_topology.py  # Delaunay-Voronoi mesh topology
 │   │   └── gnn_prediction.py  # Placeholder for future GNN implementation
 │   ├── utils/
 │   │   └── hex_grid.py    # Utilities for hexagonal grid coordinates
 │   └── run_simulation.py  # Entry point script
 ├── scripts/            # Analysis and evaluation scripts
-│   └── kalman_eval.py  # Kalman filter baseline evaluation
+│   ├── kalman_eval.py  # Kalman filter baseline evaluation
+│   ├── gnn_train.py    # GNN training script
+│   └── gnn_eval.py     # GNN evaluation script
 ├── results/            # Output results and benchmarks
 │   └── kalman_baseline.json  # Kalman filter evaluation results
+├── data/               # Data storage (HDF5 files, processed graphs)
+│   ├── raw/            # Raw simulation snapshots
+│   └── processed/      # Processed graph datasets
 ├── tests/              # Unit tests
 │   ├── test_cfg.py     # Tests for configuration functionality
 │   └── test_kalman_baseline.py  # Tests for Kalman baseline
@@ -147,16 +173,34 @@ python -m aquascan.run_simulation --headless --ticks 600 --seed 42 --out data/ra
 
 #### Batch Generation
 
-The batch generator enables parallel simulation runs with different random seeds, creating a corpus of HDF5 files for model training and analysis. This is significantly more efficient than running individual simulations and provides a consistent dataset for reproducible research.
+The batch generator enables parallel simulation runs with different random seeds, creating a corpus of HDF5 files for model training and analysis. Based on visualization analysis, we use **5-tick intervals** (640 seconds) to capture smooth motion while keeping file sizes manageable.
 
-Generate multiple simulations in parallel:
+##### Optimized Configuration (Recommended)
+
+Generate dataset with 5-tick snapshot intervals based on visualization findings:
+```bash
+# Generate 1000 runs with optimized settings (~2GB total)
+python -m aquascan.batch.generate --cfg configs/optimal_5tick.yml --runs 1000 --out data/raw_5tick --jobs 8
+```
+
+This configuration:
+- **Snapshots**: 48 per run (every 5 ticks for 235 ticks)
+- **File size**: ~2MB per run
+- **Total dataset**: ~2GB for 1000 runs
+- **Speed**: x128 (validated through visualization)
+
+See `docs/visualization_results.md` for the analysis that determined these parameters.
+
+##### Standard Configuration
+
+For comparison or different experiments:
 ```bash
 python -m aquascan.batch.generate --cfg configs/base.yml --runs 500 --out data/raw --jobs 8
 ```
 
 Command-line options for batch generation:
-- `--cfg`: Path to the base configuration file (default: configs/base.yml)
-- `--runs`: Number of simulations to run (default: 500)
+- `--cfg`: Path to the configuration file (use `optimal_5tick.yml` for best results)
+- `--runs`: Number of simulations to run (default: 1000)
 - `--out`: Output directory for HDF5 files (default: data/raw)
 - `--jobs`: Number of parallel workers (default: CPU count)
 - `--overwrite`: If set, overwrite existing files (default: skip)
@@ -167,21 +211,32 @@ Command-line options for batch generation:
 - **Benchmark reproducibility**: Training and evaluation can use identical data without rerunning simulations
 - **Experiment speed**: Loading pre-written HDF5s is orders of magnitude faster than running physics simulations
 - **Parallel efficiency**: Saturates all CPU cores to reduce generation time
+- **Progress tracking**: Real-time progress bar with size estimates
 
 **Example workflow:**
-1. Generate a large dataset once:
+1. Generate optimized dataset:
    ```bash
-   python -m aquascan.batch.generate --cfg configs/base.yml --runs 500 --out data/raw --jobs 8
+   python -m aquascan.batch.generate --cfg configs/optimal_5tick.yml --runs 1000 --out data/raw_5tick --jobs 8
    ```
 
-2. Use the dataset for model development and testing:
+2. Monitor progress:
+   ```
+   🚀 [Aquascan Batch Generator - Optimized for 5-tick intervals]
+   📊 Storage estimates:
+      - Per run: ~2.0 MB
+      - Total dataset: ~2.00 GB
+   
+   Simulations: 100%|████████| 1000/1000 [15:32<00:00, 1.07sim/s, ok=1000, skip=0, error=0, size_GB=1.95]
+   ```
+
+3. Use the dataset for model development:
    ```python
    import h5py
    import glob
    import numpy as np
    
    # Load a batch of simulation files
-   simulation_files = glob.glob("data/raw/*.h5")
+   simulation_files = glob.glob("data/raw_5tick/*.h5")
    
    # Process each file
    for file_path in simulation_files:
@@ -239,6 +294,52 @@ Or run a specific test:
 ```bash
 python -m pytest tests/test_cfg.py
 ```
+
+### Visualization Tools
+
+The project includes tools for generating visual snapshots from headless simulations to verify data quality and understand entity behavior. See `docs/visualization_results.md` for the analysis that determined optimal data generation parameters.
+
+#### Key Visualization Findings
+Based on trajectory analysis with 5-tick intervals:
+- **Optimal framerate**: Every 5 ticks (640 seconds) captures smooth motion
+- **48 snapshots**: Covers ~8.4 hours of simulation time
+- **File size**: ~2MB per run with this configuration
+- **Reference grid**: See `visualizations/run_42_20250523_112803/snapshot_grid.png`
+
+#### Generate Simulation Snapshots
+Create PNG snapshots at specified intervals during a simulation:
+```bash
+# Generate optimized 48-frame visualization with trajectories
+python scripts/generate_snapshots.py --seed 42 --ticks 235 --interval 5 --output visualizations
+
+# Standard visualization for comparison
+python scripts/generate_snapshots.py --seed 42 --ticks 600 --interval 60 --output visualizations
+```
+
+Features:
+- Entity trajectory lines showing movement paths
+- Color-coded entities (each θ-contact has unique color)
+- Detection status visualization (bright vs transparent)
+- Network topology with connection types
+- Ocean current indicators
+
+#### Create Visualization Summaries
+Combine snapshots into grids for analysis:
+```bash
+# Create a 6×8 grid view of 48 snapshots
+python scripts/visualize_snapshots.py visualizations/run_42_* --grid --cols 6
+
+# Create a 8×6 grid for landscape view
+python scripts/visualize_snapshots.py visualizations/run_42_* --grid --cols 8
+```
+
+#### Quick Test
+Run a quick visualization test:
+```bash
+./test_snapshots.sh  # Generates 2-minute simulation with snapshots every 30 seconds
+```
+
+For detailed visualization guide, see `docs/visualization_guide.md`.
 
 ## Research Methodology
 

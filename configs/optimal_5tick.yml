@@ -1,0 +1,19 @@
+# Optimized configuration for data generation
+# Based on visualization analysis - uses 5-tick intervals for efficient storage
+
+sim:
+  ticks: 235          # Total simulation ticks (~8.4 hours at x128)
+  seed: 42
+  resolution_km: 1.0
+  snapshot_interval: 5  # Capture every 5 ticks (key finding from visualization)
+  area:
+    length_km: 30
+    width_km: 16
+    shore_offset_km: 6
+
+# Speed is set to x128 in the simulation code
+# This gives us 48 snapshots per run (235/5 + 1)
+
+bokeh:
+  port: 5006
+  show: false

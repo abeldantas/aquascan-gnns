@@ -6,3 +6,5 @@ noise
 h5py
 omegaconf
 scikit-learn
+matplotlib
+pillow
