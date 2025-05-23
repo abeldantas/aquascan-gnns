@@ -346,6 +346,29 @@ Run a quick visualization test:
 
 For detailed visualization guide, see `docs/visualization_guide.md`.
 
+## Notebook Cells
+
+The `notebooks/` directory contains individual markdown files for each notebook cell used in the Colab pipeline:
+
+### Core Pipeline Cells
+1. **CELL_1.md**: Setup GitHub Authentication
+2. **CELL_2.md**: Clone Repository and Setup
+3. **CELL_3.md**: Configuration
+4. **CELL_4.md**: Generate Raw Data
+5. **CELL_5.md**: Build Graph Datasets (Fixed for Colab)
+6. **CELL_6.md**: Train GNN Models (Fixed Arguments)
+7. **CELL_7.md**: Run Kalman Baselines
+8. **CELL_8.md**: Visualize Results
+9. **CELL_9.md**: Save to Google Drive
+10. **CELL_10.md**: Push Results to GitHub
+11. **CELL_11.md**: Summary Report
+
+### Fixed Versions
+- **FIXED_COLAB_CELL_7.md**: Kalman Baselines (Replaces the broken one)
+- **FIXED_COLAB_CELL_10.md**: Proper Results Saving
+
+These cells can be copied and pasted into Google Colab for running the complete machine learning pipeline, from data generation through model training and evaluation.
+
 ## Research Methodology
 
 We developed a custom marine simulation framework in Python using Bokeh for real-time visualization to evaluate predictive models in the absence of real-world passive sensor networks. The simulated environment spans 30×16 km, with ε-nodes (sensors) deployed in a hexagonal grid and linked via Delaunay triangulation. As the topology evolves, connectivity is updated using Voronoi decomposition. The system models three marine species—two types of fish and cetacea—using Brownian and sinusoidal motion patterns to reflect natural variability and enable trajectory verifiability. We generated 500 independent simulations, from which we extracted 40,000 samples comprising time-series sensor contact data. These were split into training (70%), validation (15%), and test sets (15%), with an additional set of synthetic adversarial cases (e.g., biologically implausible speeds or teleporting entities) used to evaluate model robustness and false positive behavior.
