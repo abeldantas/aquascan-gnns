@@ -8,3 +8,6 @@ omegaconf
 scikit-learn
 matplotlib
 pillow
+torch>=2.0.0
+# Note: torch_geometric requires special installation based on PyTorch/CUDA version
+# See notebooks/COLAB_PIPELINE.md for proper installation commands
