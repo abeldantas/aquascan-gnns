@@ -1,13 +1,17 @@
 # 🚀 Quick Command Reference
 
+> ⚠️ **Critical**: Models predict future detections ONLY for entities already detected in context window. See [docs/technical/prediction_protocol.md](docs/technical/prediction_protocol.md) for details.
+
 ## Graph Building (After raw data generation)
 
-### Option 1: Build all datasets at once
+### Option 1: Build all datasets at once (FAST - Parallel)
 ```bash
-./build_all_graphs.sh
+./scripts/build_all_graphs_parallel.sh  # ~30 minutes for all horizons
 ```
 
-### Option 2: Build individually
+### Option 2: Build individually (SLOW - Sequential)
+⚠️ **WARNING**: The commands below use sequential processing and can take 10+ hours!
+Use the parallel script above instead.
 ```bash
 # Easy task (30 ticks = 64 seconds)
 python -m aquascan.dataset.build_graphs \

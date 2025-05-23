@@ -71,6 +71,11 @@ aquascan-gnns/
 ├── data/               # Data storage (HDF5 files, processed graphs)
 │   ├── raw/            # Raw simulation snapshots
 │   └── processed/      # Processed graph datasets
+├── docs/               # Documentation
+│   ├── technical/      # Technical design documents
+│   │   └── prediction_protocol.md  # CRITICAL: Prediction task design (no info leakage)
+│   ├── visualization_results.md    # Visualization analysis results
+│   └── horizon_experiment_roadmap.md  # Experiment design for testing task difficulty
 ├── tests/              # Unit tests
 │   ├── test_cfg.py     # Tests for configuration functionality
 │   └── test_kalman_baseline.py  # Tests for Kalman baseline
@@ -417,6 +422,8 @@ with h5py.File("data/raw/42.h5") as f:
 > write to a new folder rather than mutating existing files.
 
 ## Dataset Module
+
+> **🔐 Important**: See [docs/technical/prediction_protocol.md](docs/technical/prediction_protocol.md) for details on how the prediction task is formulated to prevent information leakage.
 
 ### Graph Building
 
