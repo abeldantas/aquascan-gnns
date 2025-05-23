@@ -1,59 +1,77 @@
 # 🚀 Aquascan Colab Pipeline - Quick Start Guide
 
+## ⚠️ Important: Updated Pipeline (v2.0)
+
+This pipeline has been battle-tested and includes fixes for common Colab issues:
+- ✅ PyTorch Geometric installation
+- ✅ Shared memory errors  
+- ✅ Correct script arguments
+- ✅ Memory management
+- ✅ PYTHONPATH issues
+
 ## Step 1: Get Your GitHub Token
 
 1. Go to GitHub → Settings → Developer settings → Personal access tokens
 2. Generate a token with `repo` permissions
 3. Copy the token (you'll paste it in Colab)
 
-## Step 2: Upload the Notebook to Colab
+## Step 2: Open Google Colab
 
 1. Go to [Google Colab](https://colab.research.google.com)
-2. File → Upload notebook
-3. Upload `aquascan_full_pipeline.ipynb` from this folder
+2. Create a new notebook
+3. **Runtime → Change runtime type → GPU (T4 or better)**
+4. Save
 
-## Step 3: Enable GPU (Important!)
+## Step 3: Copy the Pipeline Code
 
-1. Runtime → Change runtime type
-2. Hardware accelerator → GPU (T4 or better)
-3. Save
+Open [COLAB_PIPELINE.md](COLAB_PIPELINE.md) and copy each cell into your Colab notebook.
 
-## Step 4: Run the Pipeline
+**Critical cells that have been fixed:**
+- Cell 2: PyTorch Geometric installation
+- Cell 5: Shared memory fix for multiprocessing
+- Cell 6: Correct argument names for scripts
+- Cell 7: Kalman baseline wrapper
 
-The notebook will:
-1. Clone your repo using the GitHub token
-2. Generate simulation data (2-3 hours)
-3. Build graph datasets (45-60 min)
-4. Train GNN models on GPU (30-45 min)
-5. Compare with baselines
-6. Push results back to GitHub
+## Step 4: Run the Pipeline!
 
-## Tips for Colab Pro
+1. **Run Cell 1** - Enter your GitHub credentials
+2. **Run remaining cells** in order (~4-5 hours total)
 
-- **Keep tab active**: Prevents disconnection
-- **Check resources**: First cells show GPU/CPU info
-- **Save frequently**: Results go to Google Drive
-- **Monitor progress**: Each section has progress bars
+## Common Issues & Solutions
 
-## Customization
+### PyTorch Geometric Won't Install
+Already fixed in Cell 2, but if issues persist, the cell includes fallback methods.
 
-In the notebook, you can adjust:
-- `NUM_RUNS`: Number of simulations (10 for test, 1000 for full)
-- `horizons`: Which prediction horizons to test
-- `device`: Force CPU if needed (but why would you?)
+### Shared Memory Error
+Already fixed in Cell 5 with:
+```python
+torch.multiprocessing.set_sharing_strategy('file_system')
+```
 
-## After Running
+### Module Not Found
+Already fixed with PYTHONPATH in Cells 6 & 7.
 
-Results will be in:
-- **GitHub**: `results/` folder with all metrics
-- **Google Drive**: Timestamped archives of everything
-- **Checkpoints**: Trained models ready to use
+## What You'll Get
+
+After ~4-5 hours:
+- ✅ Results pushed to your GitHub repo
+- ✅ Performance plots in `results/`
+- ✅ Trained models in `checkpoints/`
+- ✅ Backups in Google Drive
+
+## Pro Tips
+
+1. **Use Colab Pro** - More RAM, better GPUs, longer sessions
+2. **Keep tab active** - Prevents disconnection
+3. **Monitor Cell 5** - Graph building shows progress bars
+4. **Check Cell 11** - Summary shows if hypothesis confirmed
 
 ## Emergency Recovery
 
 If Colab disconnects:
-1. Re-run setup cells
-2. Skip data generation if `data/raw_5tick/` exists
-3. Continue from where it stopped
+1. Re-run Cells 1-2 (setup)
+2. Check what exists: `!ls data/`
+3. Skip completed steps
+4. Continue from where it stopped
 
-The notebook is designed to be re-entrant!
+The pipeline is designed to be resumable!
