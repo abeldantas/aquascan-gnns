@@ -5,25 +5,8 @@ Aquascan is a simulation environment for modeling spatiotemporal behavior of mar
 
 The simulation focuses on a marine monitoring network deployed in a rectangular offshore strip measuring 30km along the coastline and extending 16km seaward, from 6km to 22km offshore. This area is designed to monitor marine wildlife corridors and fishing vessel activity.
 
-## Current Status
-- ✅ Project structure and core architecture
-- ✅ Hexagonal grid node deployment
-- ✅ Ocean current simulation with Perlin noise
-- ✅ Marine entity motion models (Brownian and sinusoidal)
-- ✅ Detection and communication protocols
-- ✅ Delaunay-Voronoi mesh network topology for optimal connectivity
-- ✅ Real-time visualization with Bokeh
-- ✅ Detection visualization (color change for detected entities)
-- ✅ Network connections visualization (permanent and intermittent)
-- ✅ Configuration management with OmegaConf
-- ✅ Module-based architecture with proper imports
-- ✅ Unit testing framework
-- ✅ Data persistence with HDF5 snapshots
-- ✅ **Trajectory visualization and analysis**
-- ✅ **Optimized data generation pipeline (5-tick intervals)**
-- ✅ **Kalman filter baseline implementation**
-- ⬜ GNN implementation for prediction
-- ⬜ Comparison with Kalman filter baseline
+## Notebook
+https://colab.research.google.com/drive/16McEYkgTWbjueckM_2DODNtBds6IsNFt#scrollTo=UFuaW7qYBHbp
 
 ## Key Findings from Visualization Analysis
 
