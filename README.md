@@ -1,5 +1,7 @@
 # Aquascan: A Digital Twin Architecture for Marine Motion Modeling
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15691882.svg)](https://doi.org/10.5281/zenodo.15691882)
+
 ## Overview
 Aquascan is a simulation environment for modeling spatiotemporal behavior of marine life via a distributed ocean twin simulation. The system simulates a network of IoT devices (ε-nodes) in the water, relay nodes (σ-nodes), and marine entities (θ-contacts).
 
